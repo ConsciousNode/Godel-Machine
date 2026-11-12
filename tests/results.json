@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-12T07:02:20.437Z",
+  "timestamp": "2026-11-12T07:27:15.802Z",
   "tests": [
     {
       "id": 1,
@@ -144,17 +144,11 @@
     },
     {
       "id": 9,
-      "name": "Real headless browser (Chromium loaded gm1.html, ran 4 epochs, 0 page/console errors)",
-      "passed": true,
+      "name": "Real headless browser check",
+      "passed": false,
       "details": {
-        "ok": true,
-        "epoch": "4",
-        "solverCost": "426 steps",
-        "searcherCost": "29879 steps",
-        "verdicts": "2 / 2",
-        "exportedStateChars": 128624,
-        "pageErrors": [],
-        "severeConsoleLogs": []
+        "browserAvailable": false,
+        "error": "Traceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n    from selenium import webdriver\nModuleNotFoundError: No module named 'selenium'"
       }
     }
   ],
@@ -583,14 +577,8 @@
       "allScriptsLabeled": true
     },
     "test9": {
-      "ok": true,
-      "epoch": "4",
-      "solverCost": "426 steps",
-      "searcherCost": "29879 steps",
-      "verdicts": "2 / 2",
-      "exportedStateChars": 128624,
-      "pageErrors": [],
-      "severeConsoleLogs": []
+      "browserAvailable": false,
+      "error": "Traceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n    from selenium import webdriver\nModuleNotFoundError: No module named 'selenium'"
     }
   }
 }

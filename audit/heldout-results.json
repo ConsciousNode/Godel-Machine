@@ -1,0 +1,178 @@
+[
+ {
+  "program": "h1-fahrenheit.asm",
+  "startSolverCost": "590",
+  "accepted": [
+   {
+    "epoch": 2,
+    "target": "searcher",
+    "costBefore": "29917",
+    "costAfter": "29879",
+    "rules": [
+     5,
+     1,
+     9,
+     11,
+     10
+    ],
+    "indepChecker": true,
+    "differential": {
+     "jobs": 150,
+     "mismatches": 0,
+     "costIncreases": 0
+    }
+   }
+  ],
+  "endSolverCost": "590"
+ },
+ {
+  "program": "h2-seconds.asm",
+  "startSolverCost": "316",
+  "accepted": [
+   {
+    "epoch": 1,
+    "target": "solver",
+    "costBefore": "316",
+    "costAfter": "296",
+    "rules": [
+     11
+    ],
+    "indepChecker": true,
+    "differential": {
+     "inputs": 10000,
+     "mismatches": 0,
+     "costIncreases": 0
+    }
+   },
+   {
+    "epoch": 2,
+    "target": "searcher",
+    "costBefore": "29917",
+    "costAfter": "29879",
+    "rules": [
+     5,
+     1,
+     9,
+     11,
+     10
+    ],
+    "indepChecker": true,
+    "differential": {
+     "jobs": 150,
+     "mismatches": 0,
+     "costIncreases": 0
+    }
+   }
+  ],
+  "endSolverCost": "296"
+ },
+ {
+  "program": "h3-poly.asm",
+  "startSolverCost": "656",
+  "accepted": [
+   {
+    "epoch": 1,
+    "target": "solver",
+    "costBefore": "656",
+    "costAfter": "584",
+    "rules": [
+     8
+    ],
+    "indepChecker": true,
+    "differential": {
+     "inputs": 10000,
+     "mismatches": 0,
+     "costIncreases": 0
+    }
+   },
+   {
+    "epoch": 2,
+    "target": "searcher",
+    "costBefore": "29917",
+    "costAfter": "29879",
+    "rules": [
+     5,
+     1,
+     9,
+     11,
+     10
+    ],
+    "indepChecker": true,
+    "differential": {
+     "jobs": 150,
+     "mismatches": 0,
+     "costIncreases": 0
+    }
+   }
+  ],
+  "endSolverCost": "584"
+ },
+ {
+  "program": "h4-checksum.asm",
+  "startSolverCost": "520",
+  "accepted": [
+   {
+    "epoch": 2,
+    "target": "searcher",
+    "costBefore": "29917",
+    "costAfter": "29879",
+    "rules": [
+     5,
+     1,
+     9,
+     11,
+     10
+    ],
+    "indepChecker": true,
+    "differential": {
+     "jobs": 150,
+     "mismatches": 0,
+     "costIncreases": 0
+    }
+   }
+  ],
+  "endSolverCost": "520"
+ },
+ {
+  "program": "h5-scale-clamp.asm",
+  "startSolverCost": "585",
+  "accepted": [
+   {
+    "epoch": 1,
+    "target": "solver",
+    "costBefore": "585",
+    "costAfter": "459",
+    "rules": [
+     8,
+     13
+    ],
+    "indepChecker": true,
+    "differential": {
+     "inputs": 10000,
+     "mismatches": 0,
+     "costIncreases": 0
+    }
+   },
+   {
+    "epoch": 2,
+    "target": "searcher",
+    "costBefore": "29917",
+    "costAfter": "29879",
+    "rules": [
+     5,
+     1,
+     9,
+     11,
+     10
+    ],
+    "indepChecker": true,
+    "differential": {
+     "jobs": 150,
+     "mismatches": 0,
+     "costIncreases": 0
+    }
+   }
+  ],
+  "endSolverCost": "459"
+ }
+]
