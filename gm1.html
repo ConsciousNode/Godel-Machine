@@ -429,12 +429,18 @@
         <div>
           <div class="label-title">
             <span>Solver Assembly Source (ISA)</span>
-            <select id="ui-preset-solver" style="padding:2px 6px;font-size:11px;">
-              <option value="seed">Preset: Seed Polynomial &amp; Affine Evaluator</option>
-              <option value="dot">Preset: Weighted Prefix Sum</option>
-              <option value="norm">Preset: L1 Manhattan Distance</option>
-              <option value="collatz">Preset: Parity Branching Transform</option>
-            </select>
+            <span style="display:flex;gap:6px;align-items:center;">
+              <select id="ui-preset-searcher" style="padding:2px 6px;font-size:11px;" title="Searcher Preset">
+                <option value="seed">Searcher: Seed (with 3 planted identities)</option>
+                <option value="plain">Searcher: Plain (identities removed)</option>
+              </select>
+              <select id="ui-preset-solver" style="padding:2px 6px;font-size:11px;">
+                <option value="seed">Preset: Seed Polynomial &amp; Affine Evaluator</option>
+                <option value="dot">Preset: Weighted Prefix Sum</option>
+                <option value="norm">Preset: L1 Manhattan Distance</option>
+                <option value="collatz">Preset: Parity Branching Transform</option>
+              </select>
+            </span>
           </div>
           <textarea id="ui-input-solver" rows="8"></textarea>
           <div class="controls-row">
@@ -539,6 +545,93 @@
       }
     }
     return true;
+  }
+
+  // P1: Program Well-Formedness Validation
+  // Every program must be a non-empty array of 4-word instructions where:
+  // - opcode (word 0) is an integer in 0..22;
+  // - every register operand field used by the opcode's format is an integer in 0..15;
+  // - every immediate (word 2 for LDI) or branch/call target (word 3 for JMP, JZ, JNZ, CALL) is an integer.
+  const REG_FIELDS_BY_OP = {
+    0: [],
+    1: [],
+    2: [1],
+    3: [1, 2],
+    4: [1, 2, 3],
+    5: [1, 2, 3],
+    6: [1, 2, 3],
+    7: [1, 2, 3],
+    8: [1, 2, 3],
+    9: [1, 2],
+    10: [1, 2, 3],
+    11: [1, 2, 3],
+    12: [1, 2, 3],
+    13: [],
+    14: [1],
+    15: [1],
+    16: [],
+    17: [],
+    18: [1, 2],
+    19: [2, 3],
+    20: [1],
+    21: [1, 2],
+    22: [1]
+  };
+
+  function toBigIntExact(val) {
+    if (typeof val === 'bigint') return val;
+    if (typeof val === 'number') {
+      if (!Number.isInteger(val)) return null;
+      return BigInt(val);
+    }
+    if (typeof val === 'string' && /^-?\d+$/.test(val.trim())) {
+      try { return BigInt(val.trim()); } catch (_) { return null; }
+    }
+    return null;
+  }
+
+  function validateProgram(prog) {
+    if (!Array.isArray(prog) || prog.length === 0) {
+      return { ok: false, code: 'ill_formed_program', reason: 'ill_formed_program: program must be a non-empty array of instructions' };
+    }
+    for (let i = 0; i < prog.length; i++) {
+      const inst = prog[i];
+      if (!Array.isArray(inst) || inst.length !== 4) {
+        return { ok: false, code: 'ill_formed_program', reason: `ill_formed_program: instruction at ${i} must be a 4-element tuple` };
+      }
+      const w0 = toBigIntExact(inst[0]);
+      const w1 = toBigIntExact(inst[1]);
+      const w2 = toBigIntExact(inst[2]);
+      const w3 = toBigIntExact(inst[3]);
+      if (w0 === null || w1 === null || w2 === null || w3 === null) {
+        return { ok: false, code: 'ill_formed_program', reason: `ill_formed_program: non-integer word at instruction ${i}` };
+      }
+      if (w0 < 0n || w0 > 22n) {
+        return { ok: false, code: 'ill_formed_program', reason: `ill_formed_program: opcode ${w0} out of range 0..22 at instruction ${i}` };
+      }
+      const opNum = Number(w0);
+      const words = [w0, w1, w2, w3];
+      const regFields = REG_FIELDS_BY_OP[opNum] || [];
+      for (const fIdx of regFields) {
+        const rv = words[fIdx];
+        if (rv < 0n || rv > 15n) {
+          return { ok: false, code: 'ill_formed_program', reason: `ill_formed_program: register operand word[${fIdx}]=${rv} out of range 0..15 at instruction ${i} (${OP_BY_ID[opNum].name})` };
+        }
+      }
+    }
+    return { ok: true };
+  }
+
+  function isWellFormedProgram(prog) {
+    return validateProgram(prog).ok;
+  }
+
+  function ensureWellFormedProgram(prog, contextLabel = 'program', allowIllFormed = false) {
+    if (allowIllFormed) return;
+    const v = validateProgram(prog);
+    if (!v.ok) {
+      throw new Error(`Ill-formed ${contextLabel}: ${v.reason}`);
+    }
   }
 
   // =========================================================================
@@ -723,7 +816,17 @@
 
       const a = BigInt(inst[1]), b = BigInt(inst[2]), c = BigInt(inst[3]);
       const ra = Number(a), rb = Number(b), rc = Number(c);
-      if (ra < 0 || ra >= 16 || (op.fmt !== 'r_imm' && op.fmt !== 'target' && op.fmt !== 'r_target' && op.fmt !== 'none' && (rb < 0 || rb >= 16))) {
+      const regFields = REG_FIELDS_BY_OP[opId] || [];
+      const words = [BigInt(opId), a, b, c];
+      let regInvalid = false;
+      for (let f = 0; f < regFields.length; f++) {
+        const rv = words[regFields[f]];
+        if (rv < 0n || rv >= 16n) {
+          regInvalid = true;
+          break;
+        }
+      }
+      if (regInvalid) {
         status = 'invalid_register';
         break;
       }
@@ -1106,12 +1209,36 @@
     return { ok: true, value: constVal };
   }
 
+  // P4: Canonical witness field usage per rule and canonical unused instruction fields per opcode
+  // Rules 4 and 99 use neither w1 nor w2 (both must be 0).
+  // Rules 1, 2, 3, 5, 6, 7, 8, 9, 12, 14 use w1 only (w2 must be 0).
+  // Rules 10, 11, 13 use both w1 and w2.
+  const RULE_WITNESS_USAGE = {
+    1:  { w1: true,  w2: false, desc: 'Uses w1 (LDI 0 witness for rs2); w2 unused (must be 0)' },
+    2:  { w1: true,  w2: false, desc: 'Uses w1 (LDI 0 witness for rs1); w2 unused (must be 0)' },
+    3:  { w1: true,  w2: false, desc: 'Uses w1 (LDI 0 witness for rs2); w2 unused (must be 0)' },
+    4:  { w1: false, w2: false, desc: 'Uses neither w1 nor w2 (both w1 and w2 must be 0)' },
+    5:  { w1: true,  w2: false, desc: 'Uses w1 (LDI 1 witness for rs2); w2 unused (must be 0)' },
+    6:  { w1: true,  w2: false, desc: 'Uses w1 (LDI 1 witness for rs1); w2 unused (must be 0)' },
+    7:  { w1: true,  w2: false, desc: 'Uses w1 (LDI 0 witness for rs2); w2 unused (must be 0)' },
+    8:  { w1: true,  w2: false, desc: 'Uses w1 (LDI 2 witness for rs2); w2 unused (must be 0)' },
+    9:  { w1: true,  w2: false, desc: 'Uses w1 (LDI 1 witness for rs2); w2 unused (must be 0)' },
+    10: { w1: true,  w2: true,  desc: 'Uses both w1 (LDI witness for rs1) and w2 (LDI witness for rs2)' },
+    11: { w1: true,  w2: true,  desc: 'Uses both w1 (LDI witness for rs1) and w2 (LDI witness for rs2)' },
+    12: { w1: true,  w2: false, desc: 'Uses w1 (LDI witness for rs1); w2 unused (must be 0)' },
+    13: { w1: true,  w2: true,  desc: 'Uses both w1 (preceding STORE at loc - 1) and w2 (LDI address witness for r_addr)' },
+    14: { w1: true,  w2: false, desc: 'Uses w1 (overwriting instruction at loc + 1); w2 unused (must be 0)' },
+    99: { w1: false, w2: false, desc: 'Uses neither w1 nor w2 (both w1 and w2 must be 0)' }
+  };
+
   function applyAndCheckStep(prog, step, options = {}) {
     const ruleMap = getRuleMap(options);
     const ruleId = Number(step.ruleId);
     const loc = Number(step.loc);
     const w1 = Number(step.w1);
     const w2 = Number(step.w2);
+    const rawW1 = BigInt(step.w1);
+    const rawW2 = BigInt(step.w2);
     const claimedDelta = BigInt(step.costDelta);
 
     if (!ruleMap.has(ruleId)) {
@@ -1124,6 +1251,17 @@
     if (!Number.isInteger(loc) || loc < 0 || loc >= prog.length) {
       return { ok: false, code: 'wrong_location', reason: `wrong_location: instruction index ${loc} out of bounds [0, ${prog.length - 1}]` };
     }
+    const checkCanonicalWitnesses = () => {
+      const usage = RULE_WITNESS_USAGE[ruleId];
+      if (!usage) return null;
+      if (!usage.w1 && rawW1 !== 0n) {
+        return { ok: false, code: 'noncanonical_certificate', reason: `noncanonical_certificate: rule ${rule.name} does not use w1, expected 0 but got ${rawW1}` };
+      }
+      if (!usage.w2 && rawW2 !== 0n) {
+        return { ok: false, code: 'noncanonical_certificate', reason: `noncanonical_certificate: rule ${rule.name} does not use w2, expected 0 but got ${rawW2}` };
+      }
+      return null;
+    };
 
     const inst = prog[loc];
     const op = Number(inst[0]);
@@ -1137,7 +1275,8 @@
         if (!cw.ok) return cw;
         if (cw.value !== 0n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_ADD_ZERO_R requires rs2 == 0, got ${cw.value}` };
         nextProg[loc] = [3n, a, b, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 2: { // R_ADD_ZERO_L
         if (op !== 4) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_ADD_ZERO_L requires ADD at ${loc}, found op ${op}` };
@@ -1145,7 +1284,8 @@
         if (!cw.ok) return cw;
         if (cw.value !== 0n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_ADD_ZERO_L requires rs1 == 0, got ${cw.value}` };
         nextProg[loc] = [3n, a, c, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 3: { // R_SUB_ZERO
         if (op !== 5) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_SUB_ZERO requires SUB at ${loc}, found op ${op}` };
@@ -1153,13 +1293,15 @@
         if (!cw.ok) return cw;
         if (cw.value !== 0n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_SUB_ZERO requires rs2 == 0, got ${cw.value}` };
         nextProg[loc] = [3n, a, b, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 4: { // R_SUB_SELF
         if (op !== 5) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_SUB_SELF requires SUB at ${loc}, found op ${op}` };
         if (b !== c) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_SUB_SELF requires rs1 == rs2, got r${b} != r${c}` };
         nextProg[loc] = [2n, a, 0n, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 5: { // R_MUL_ONE_R
         if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_MUL_ONE_R requires MUL at ${loc}, found op ${op}` };
@@ -1167,7 +1309,8 @@
         if (!cw.ok) return cw;
         if (cw.value !== 1n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_MUL_ONE_R requires rs2 == 1, got ${cw.value}` };
         nextProg[loc] = [3n, a, b, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 6: { // R_MUL_ONE_L
         if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_MUL_ONE_L requires MUL at ${loc}, found op ${op}` };
@@ -1175,7 +1318,8 @@
         if (!cw.ok) return cw;
         if (cw.value !== 1n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_MUL_ONE_L requires rs1 == 1, got ${cw.value}` };
         nextProg[loc] = [3n, a, c, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 7: { // R_MUL_ZERO_R
         if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_MUL_ZERO_R requires MUL at ${loc}, found op ${op}` };
@@ -1183,7 +1327,8 @@
         if (!cw.ok) return cw;
         if (cw.value !== 0n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_MUL_ZERO_R requires rs2 == 0, got ${cw.value}` };
         nextProg[loc] = [2n, a, 0n, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 8: { // R_MUL_TWO_R
         if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_MUL_TWO_R requires MUL at ${loc}, found op ${op}` };
@@ -1191,7 +1336,8 @@
         if (!cw.ok) return cw;
         if (cw.value !== 2n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_MUL_TWO_R requires rs2 == 2, got ${cw.value}` };
         nextProg[loc] = [4n, a, b, b];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 9: { // R_DIV_ONE
         if (op !== 7) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_DIV_ONE requires DIV at ${loc}, found op ${op}` };
@@ -1199,7 +1345,8 @@
         if (!cw.ok) return cw;
         if (cw.value !== 1n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_DIV_ONE requires rs2 == 1, got ${cw.value}` };
         nextProg[loc] = [3n, a, b, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 10: { // R_CONST_FOLD_ADD
         if (op !== 4) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_CONST_FOLD_ADD requires ADD at ${loc}, found op ${op}` };
@@ -1208,7 +1355,8 @@
         const cw2 = verifyConstantAt(prog, loc, w2, c);
         if (!cw2.ok) return cw2;
         nextProg[loc] = [2n, a, cw1.value + cw2.value, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 11: { // R_CONST_FOLD_MUL
         if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_CONST_FOLD_MUL requires MUL at ${loc}, found op ${op}` };
@@ -1217,14 +1365,16 @@
         const cw2 = verifyConstantAt(prog, loc, w2, c);
         if (!cw2.ok) return cw2;
         nextProg[loc] = [2n, a, cw1.value * cw2.value, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 12: { // R_CONST_FOLD_NEG
         if (op !== 9) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_CONST_FOLD_NEG requires NEG at ${loc}, found op ${op}` };
         const cw1 = verifyConstantAt(prog, loc, w1, b);
         if (!cw1.ok) return cw1;
         nextProg[loc] = [2n, a, -cw1.value, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 13: { // R_REDUNDANT_LOAD
         if (op !== 18) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_REDUNDANT_LOAD requires LOAD at ${loc}, found op ${op}` };
@@ -1240,7 +1390,8 @@
         }
         const rVal = BigInt(prev[3]);
         nextProg[loc] = [3n, a, rVal, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 14: { // R_DEAD_LOAD
         if (op !== 18) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_DEAD_LOAD requires LOAD at ${loc}, found op ${op}` };
@@ -1250,12 +1401,14 @@
           return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: instruction at ${w1} does not overwrite r${a} without reading it` };
         }
         nextProg[loc] = [0n, 0n, 0n, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       case 99: { // UNSOUND_RULE
         if (op !== 4) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_UNSOUND_ADD_TO_MOV requires ADD at ${loc}, found op ${op}` };
         nextProg[loc] = [3n, a, b, 0n];
-        return { ok: true, prog: nextProg };
+        { const cwErr = checkCanonicalWitnesses(); if (cwErr) return cwErr; }
+      return { ok: true, prog: nextProg };
       }
       default:
         return { ok: false, code: 'wrong_rule', reason: `wrong_rule: unhandled rule ${ruleId}` };
@@ -1442,6 +1595,32 @@
         reason: `stale_target_hash: certificate targetHash ${targetHash} does not match current component ${targetComponent} hash ${actualHash}`,
         cert
       };
+    }
+
+    // P1: Verify well-formedness of both activeProg and replacementProg (unless allowIllFormed is true)
+    const allowIllFormed = options.allowIllFormed !== undefined
+      ? Boolean(options.allowIllFormed)
+      : Boolean(machineState && machineState.options && machineState.options.allowIllFormed);
+
+    if (!allowIllFormed) {
+      const wfActive = validateProgram(activeProg);
+      if (!wfActive.ok) {
+        return {
+          accepted: false,
+          code: 'ill_formed_program',
+          reason: `Active program is not well-formed: ${wfActive.reason}`,
+          cert
+        };
+      }
+      const wfRepl = validateProgram(replacementProg);
+      if (!wfRepl.ok) {
+        return {
+          accepted: false,
+          code: 'ill_formed_program',
+          reason: `Replacement program is not well-formed: ${wfRepl.reason}`,
+          cert
+        };
+      }
     }
 
     // Apply each proof step sequentially starting from a fresh copy of activeProg
@@ -2544,6 +2723,17 @@ emit_proof_step:
   LOAD r6, r0
   RET`;
 
+  // P2: Plain Searcher preset (SEED_SEARCHER_ASM with the 3 planted identity lines removed and nothing else changed)
+  const PLAIN_SEARCHER_ASM = SEED_SEARCHER_ASM
+    .replace('  MUL r0, r0, r14\n', '')
+    .replace('  ADD r0, r0, r13\n', '')
+    .replace('  DIV r1, r1, r14\n', '');
+
+  const PRESET_SEARCHERS = {
+    seed: SEED_SEARCHER_ASM,
+    plain: PLAIN_SEARCHER_ASM
+  };
+
   const DEFAULT_WORKLOAD = [
     [1n, 2n, 3n, 4n],
     [10n, -5n, 0n, 7n, 12n],
@@ -2576,21 +2766,35 @@ emit_proof_step:
     constructor(options = {}) {
       this.options = {
         unsoundRule: Boolean(options.unsoundRule),
+        allowIllFormed: Boolean(options.allowIllFormed),
         switchCost: options.switchCost !== undefined ? BigInt(options.switchCost) : SWITCH_COST,
         defaultEpochBudget: options.defaultEpochBudget !== undefined ? BigInt(options.defaultEpochBudget) : 650000n
       };
-      this.solverProg = options.solverProg ? assemble(options.solverProg) : assemble(SEED_SOLVER_ASM);
-      this.searcherProg = options.searcherProg ? assemble(options.searcherProg) : assemble(SEED_SEARCHER_ASM);
+      const initSolver = options.solverProg ? assemble(options.solverProg) : assemble(SEED_SOLVER_ASM);
+      ensureWellFormedProgram(initSolver, 'solverProg in Machine constructor', this.options.allowIllFormed);
+      this.solverProg = initSolver;
+
+      const searcherSource = options.searcherPreset && PRESET_SEARCHERS[options.searcherPreset]
+        ? PRESET_SEARCHERS[options.searcherPreset]
+        : (options.searcherProg || SEED_SEARCHER_ASM);
+      const initSearcher = assemble(searcherSource);
+      ensureWellFormedProgram(initSearcher, 'searcherProg in Machine constructor', this.options.allowIllFormed);
+      this.searcherProg = initSearcher;
+
       this.workload = options.workload
         ? options.workload.map(vec => vec.map(BigInt))
         : DEFAULT_WORKLOAD.map(vec => vec.map(BigInt));
       this.exam = options.exam
-        ? options.exam.map(j => ({
-            name: j.name || 'job',
-            targetComponent: Number(j.targetComponent || 0),
-            prog: assemble(j.prog || j.programAsm || SEED_SOLVER_ASM),
-            budget: BigInt(j.budget || 200000n)
-          }))
+        ? options.exam.map((j, idx) => {
+            const p = assemble(j.prog || j.programAsm || SEED_SOLVER_ASM);
+            ensureWellFormedProgram(p, `exam[${idx}].prog in Machine constructor`, this.options.allowIllFormed);
+            return {
+              name: j.name || 'job',
+              targetComponent: Number(j.targetComponent || 0),
+              prog: p,
+              budget: BigInt(j.budget || 200000n)
+            };
+          })
         : createDefaultExam();
 
       this.epoch = 0;
@@ -2627,12 +2831,19 @@ emit_proof_step:
     }
 
     setSolver(srcOrProg) {
-      this.solverProg = assemble(srcOrProg);
+      const p = assemble(srcOrProg);
+      ensureWellFormedProgram(p, 'solverProg in setSolver', this.options.allowIllFormed);
+      this.solverProg = p;
       this.costHistory.solver.push(this.getSolverCost());
     }
 
     setSearcher(srcOrProg) {
-      this.searcherProg = assemble(srcOrProg);
+      const resolved = (typeof srcOrProg === 'string' && PRESET_SEARCHERS[srcOrProg])
+        ? PRESET_SEARCHERS[srcOrProg]
+        : srcOrProg;
+      const p = assemble(resolved);
+      ensureWellFormedProgram(p, 'searcherProg in setSearcher', this.options.allowIllFormed);
+      this.searcherProg = p;
       this.costHistory.searcher.push(this.getSearcherCost());
     }
 
@@ -2642,12 +2853,20 @@ emit_proof_step:
     }
 
     setExam(newExam) {
-      this.exam = newExam.map((j, idx) => ({
-        name: j.name || `exam_job_${idx}`,
-        targetComponent: Number(j.targetComponent || 0),
-        prog: assemble(j.prog || j.programAsm || this.solverProg),
-        budget: BigInt(j.budget || 200000n)
-      }));
+      if (!Array.isArray(newExam) || newExam.length === 0) {
+        throw new Error('Exam must be a non-empty array of jobs');
+      }
+      const parsedJobs = newExam.map((j, idx) => {
+        const p = assemble(j.prog || j.programAsm || this.solverProg);
+        ensureWellFormedProgram(p, `exam[${idx}].prog in setExam`, this.options.allowIllFormed);
+        return {
+          name: j.name || `exam_job_${idx}`,
+          targetComponent: Number(j.targetComponent || 0),
+          prog: p,
+          budget: BigInt(j.budget || 200000n)
+        };
+      });
+      this.exam = parsedJobs;
       this.costHistory.searcher.push(this.getSearcherCost());
     }
 
@@ -2671,6 +2890,7 @@ emit_proof_step:
 
       const checkRes = checkCertificate(rawOutputs, this, {
         unsoundRule: this.options.unsoundRule,
+        allowIllFormed: this.options.allowIllFormed,
         expectedTargetComponent: targetComponent
       });
 
@@ -2754,6 +2974,7 @@ emit_proof_step:
         version: 'GM1-STATE-1',
         options: {
           unsoundRule: this.options.unsoundRule,
+          allowIllFormed: Boolean(this.options.allowIllFormed),
           switchCost: this.options.switchCost.toString(),
           defaultEpochBudget: this.options.defaultEpochBudget.toString()
         },
@@ -2805,7 +3026,22 @@ emit_proof_step:
       if (!data || data.version !== 'GM1-STATE-1') {
         throw new Error('Invalid GM-1 state format version');
       }
-      const parseProg = (arr) => arr.map(inst => [BigInt(inst[0]), BigInt(inst[1]), BigInt(inst[2]), BigInt(inst[3])]);
+      const allowIllFormed = data.options && data.options.allowIllFormed !== undefined
+        ? Boolean(data.options.allowIllFormed)
+        : Boolean(this.options && this.options.allowIllFormed);
+      const parseProg = (arr, label = 'program') => {
+        if (!Array.isArray(arr) || arr.length === 0) {
+          throw new Error(`Ill-formed ${label} in importState: must be non-empty instruction array`);
+        }
+        const p = arr.map((inst, idx) => {
+          if (!Array.isArray(inst) || inst.length !== 4) {
+            throw new Error(`Ill-formed ${label} at instruction ${idx} in importState`);
+          }
+          return [BigInt(inst[0]), BigInt(inst[1]), BigInt(inst[2]), BigInt(inst[3])];
+        });
+        ensureWellFormedProgram(p, `${label} in importState`, allowIllFormed);
+        return p;
+      };
       const parseCertObj = (c) => {
         if (!c) return null;
         return {
@@ -2825,21 +3061,25 @@ emit_proof_step:
         };
       };
 
+      const nextSolver = parseProg(data.solverProg, 'solverProg');
+      const nextSearcher = parseProg(data.searcherProg, 'searcherProg');
+      const nextExam = data.exam.map((j, idx) => ({
+        name: j.name,
+        targetComponent: Number(j.targetComponent),
+        prog: parseProg(j.prog, `exam[${idx}].prog`),
+        budget: BigInt(j.budget)
+      }));
       this.options = {
         unsoundRule: Boolean(data.options.unsoundRule),
+        allowIllFormed,
         switchCost: BigInt(data.options.switchCost),
         defaultEpochBudget: BigInt(data.options.defaultEpochBudget)
       };
       this.epoch = Number(data.epoch);
-      this.solverProg = parseProg(data.solverProg);
-      this.searcherProg = parseProg(data.searcherProg);
+      this.solverProg = nextSolver;
+      this.searcherProg = nextSearcher;
       this.workload = data.workload.map(vec => vec.map(BigInt));
-      this.exam = data.exam.map(j => ({
-        name: j.name,
-        targetComponent: Number(j.targetComponent),
-        prog: parseProg(j.prog),
-        budget: BigInt(j.budget)
-      }));
+      this.exam = nextExam;
       this.lineageLog = data.lineageLog.map(e => ({
         index: Number(e.index),
         epoch: Number(e.epoch),
@@ -3104,6 +3344,17 @@ emit_proof_step:
       updateUI();
     });
 
+    if (el('ui-preset-searcher')) {
+      el('ui-preset-searcher').addEventListener('change', (ev) => {
+        const key = ev.target.value;
+        if (PRESET_SEARCHERS[key]) {
+          machine.setSearcher(PRESET_SEARCHERS[key]);
+          el('ui-config-status').textContent = `Searcher switched to '${key}' preset (${machine.searcherProg.length} instructions)`;
+          updateUI();
+        }
+      });
+    }
+
     el('ui-preset-solver').addEventListener('change', (ev) => {
       const key = ev.target.value;
       if (PRESET_SOLVERS[key]) {
@@ -3186,10 +3437,16 @@ emit_proof_step:
     HASH_MOD,
     RULES,
     UNSOUND_RULE,
+    REG_FIELDS_BY_OP,
+    RULE_WITNESS_USAGE,
     SEED_SOLVER_ASM,
     PRESET_SOLVERS,
     SEED_SEARCHER_ASM,
+    PLAIN_SEARCHER_ASM,
+    PRESET_SEARCHERS,
     DEFAULT_WORKLOAD,
+    validateProgram,
+    isWellFormedProgram,
     createDefaultExam,
     computeProgramHash,
     cloneProg,

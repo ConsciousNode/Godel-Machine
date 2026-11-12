@@ -1,10 +1,13 @@
 {
-  "timestamp": "2026-11-12T07:27:15.802Z",
+  "version": "GM-1.1",
+  "timestamp": "2026-11-12T07:53:59.497Z",
   "tests": [
     {
       "id": 1,
       "name": "Checker rejects forgeries (240/240 rejected with exact expected reason)",
+      "status": "PASS",
       "passed": true,
+      "skipped": false,
       "details": {
         "totalForgeries": 240,
         "rejectedCount": 240,
@@ -56,7 +59,9 @@
     {
       "id": 2,
       "name": "Soundness by differential testing (14 rules x 10,000 random inputs = 140,000 runs, 0 mismatches, 0 cost violations)",
+      "status": "PASS",
       "passed": true,
+      "skipped": false,
       "details": {
         "rulesTested": 14,
         "totalRuns": 140000
@@ -65,7 +70,9 @@
     {
       "id": 3,
       "name": "Unsound-rule positive control (accepted with unsoundRule:true, breaks output, caught by Test 2, rejected when off)",
+      "status": "PASS",
       "passed": true,
+      "skipped": false,
       "details": {
         "acceptedWhenUnsoundTrue": true,
         "behaviorBroken": true,
@@ -78,7 +85,9 @@
     {
       "id": 4,
       "name": "Search really runs on the VM (perturbing searcher changes proposals; silent searcher accepts 0 rewrites)",
+      "status": "PASS",
       "passed": true,
+      "skipped": false,
       "details": {
         "baseStepCount": 6,
         "perturbedStepCount": 3,
@@ -89,7 +98,9 @@
     {
       "id": 5,
       "name": "End-to-end epochs across Seed Solver and 3 additional solvers",
+      "status": "PASS",
       "passed": true,
+      "skipped": false,
       "details": {
         "solversTested": [
           "Seed Solver (Polynomial & Affine Checksum): 732 -> 426 steps (2 accepted, 2 rejected)",
@@ -101,9 +112,50 @@
     },
     {
       "id": 6,
-      "name": "Searcher self-rewrite replay (exam cost 29917 -> 29879, proposals bit-identical)",
+      "name": "Searcher self-rewrite on both presets (seed: 29917->29879 [5 steps]; plain: 29885->29873 [2 steps], proposals identical)",
+      "status": "PASS",
       "passed": true,
+      "skipped": false,
       "details": {
+        "seed": {
+          "preset": "seed",
+          "instructionCount": 774,
+          "selfRewriteOccurred": true,
+          "oldSearcherHash": "382166022",
+          "newSearcherHash": "708145596",
+          "oldExamCost": "29917",
+          "newExamCost": "29879",
+          "examCostDrop": "38",
+          "switchCost": "5",
+          "proofStepsCount": 5,
+          "rulesApplied": [
+            5,
+            1,
+            9,
+            11,
+            10
+          ],
+          "proposalsIdenticalOnExam": true,
+          "validIfOccurred": true
+        },
+        "plain": {
+          "preset": "plain",
+          "instructionCount": 771,
+          "selfRewriteOccurred": true,
+          "oldSearcherHash": "220383755",
+          "newSearcherHash": "590249666",
+          "oldExamCost": "29885",
+          "newExamCost": "29873",
+          "examCostDrop": "12",
+          "switchCost": "5",
+          "proofStepsCount": 2,
+          "rulesApplied": [
+            11,
+            10
+          ],
+          "proposalsIdenticalOnExam": true,
+          "validIfOccurred": true
+        },
         "selfRewriteOccurred": true,
         "oldSearcherHash": "382166022",
         "newSearcherHash": "708145596",
@@ -118,7 +170,9 @@
     {
       "id": 7,
       "name": "Determinism and mid-run state export/import (bit-identical JSON states)",
+      "status": "PASS",
       "passed": true,
+      "skipped": false,
       "details": {
         "twoRunsIdentical": true,
         "resumedIdentical": true,
@@ -130,7 +184,9 @@
     {
       "id": 8,
       "name": "Static scan (Strict CSP, 0 network/storage APIs, all inline blocks labeled with provenance)",
+      "status": "PASS",
       "passed": true,
+      "skipped": false,
       "details": {
         "hasStrictCsp": true,
         "cspContent": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;",
@@ -144,11 +200,537 @@
     },
     {
       "id": 9,
-      "name": "Real headless browser check",
-      "passed": false,
+      "name": "Real headless browser (selenium-chromium loaded gm1.html, ran 4 epochs, 0 page/console errors)",
+      "status": "PASS",
+      "passed": true,
+      "skipped": false,
       "details": {
-        "browserAvailable": false,
-        "error": "Traceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n    from selenium import webdriver\nModuleNotFoundError: No module named 'selenium'"
+        "ok": true,
+        "driver": "selenium-chromium",
+        "epoch": "4",
+        "solverCost": "426 steps",
+        "searcherCost": "29879 steps",
+        "verdicts": "2 / 2",
+        "exportedStateChars": 128653,
+        "pageErrors": [],
+        "severeConsoleLogs": []
+      }
+    },
+    {
+      "id": 10,
+      "name": "P1 Ill-formed rejection (all 14 rules rejected with ill_formed_program; all 7 load paths refuse ill-formed programs)",
+      "status": "PASS",
+      "passed": true,
+      "skipped": false,
+      "details": {
+        "all14RulesRejectedWithIllFormed": true,
+        "perRule": [
+          {
+            "ruleId": 1,
+            "ruleName": "R_ADD_ZERO_R",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 2,
+            "ruleName": "R_ADD_ZERO_L",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 3,
+            "ruleName": "R_SUB_ZERO",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 4,
+            "ruleName": "R_SUB_SELF",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 5,
+            "ruleName": "R_MUL_ONE_R",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 6,
+            "ruleName": "R_MUL_ONE_L",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 7,
+            "ruleName": "R_MUL_ZERO_R",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 8,
+            "ruleName": "R_MUL_TWO_R",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 9,
+            "ruleName": "R_DIV_ONE",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 10,
+            "ruleName": "R_CONST_FOLD_ADD",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 11,
+            "ruleName": "R_CONST_FOLD_MUL",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 12,
+            "ruleName": "R_CONST_FOLD_NEG",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 13,
+            "ruleName": "R_REDUNDANT_LOAD",
+            "accepted": false,
+            "code": "ill_formed_program"
+          },
+          {
+            "ruleId": 14,
+            "ruleName": "R_DEAD_LOAD",
+            "accepted": false,
+            "code": "ill_formed_program"
+          }
+        ],
+        "allLoadPathsRefused": true,
+        "loadPaths": {
+          "constructor_solverProg": {
+            "refused": true,
+            "error": "Ill-formed solverProg in Machine constructor: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+          },
+          "constructor_searcherProg": {
+            "refused": true,
+            "error": "Ill-formed searcherProg in Machine constructor: ill_formed_program: opcode 25 out of range 0..22 at instruction 0"
+          },
+          "constructor_exam": {
+            "refused": true,
+            "error": "Ill-formed exam[0].prog in Machine constructor: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+          },
+          "setSolver": {
+            "refused": true,
+            "error": "Ill-formed solverProg in setSolver: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+          },
+          "setSearcher": {
+            "refused": true,
+            "error": "Ill-formed searcherProg in setSearcher: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+          },
+          "setExam": {
+            "refused": true,
+            "error": "Ill-formed exam[0].prog in setExam: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+          },
+          "importState": {
+            "refused": true,
+            "error": "Ill-formed solverProg in importState: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (INLEN)"
+          }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "name": "P1 Positive control (allowIllFormed:true accepts auditor's 2 r99 probes and causes Test 10 to fail; default rejects both)",
+      "status": "PASS",
+      "passed": true,
+      "skipped": false,
+      "details": {
+        "probeR4AcceptedWhenAllowIllFormedTrue": true,
+        "probeR14AcceptedWhenAllowIllFormedTrue": true,
+        "probeR4RejectedWhenDefault": true,
+        "probeR14RejectedWhenDefault": true,
+        "test10FailsWhenAllowIllFormedTrue": true
+      }
+    },
+    {
+      "id": 12,
+      "name": "P4 Canonical witness fields (every unused witness field across Rules 1..14 rejected with noncanonical_certificate when nonzero)",
+      "status": "PASS",
+      "passed": true,
+      "skipped": false,
+      "details": {
+        "perRule": [
+          {
+            "ruleId": 1,
+            "ruleName": "R_ADD_ZERO_R",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 2,
+            "ruleName": "R_ADD_ZERO_L",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 3,
+            "ruleName": "R_SUB_ZERO",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 4,
+            "ruleName": "R_SUB_SELF",
+            "usesW1": false,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 5,
+            "ruleName": "R_MUL_ONE_R",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 6,
+            "ruleName": "R_MUL_ONE_L",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 7,
+            "ruleName": "R_MUL_ZERO_R",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 8,
+            "ruleName": "R_MUL_TWO_R",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 9,
+            "ruleName": "R_DIV_ONE",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 10,
+            "ruleName": "R_CONST_FOLD_ADD",
+            "usesW1": true,
+            "usesW2": true,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 11,
+            "ruleName": "R_CONST_FOLD_MUL",
+            "usesW1": true,
+            "usesW2": true,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 12,
+            "ruleName": "R_CONST_FOLD_NEG",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 13,
+            "ruleName": "R_REDUNDANT_LOAD",
+            "usesW1": true,
+            "usesW2": true,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 14,
+            "ruleName": "R_DEAD_LOAD",
+            "usesW1": true,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1 (used)",
+                "rejectedCode": "side_condition_violated",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          },
+          {
+            "ruleId": 99,
+            "ruleName": "R_UNSOUND_ADD_TO_MOV",
+            "usesW1": false,
+            "usesW2": false,
+            "canonicalAccepted": true,
+            "noncanonicalChecks": [
+              {
+                "field": "w1",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              },
+              {
+                "field": "w2",
+                "rejectedCode": "noncanonical_certificate",
+                "ok": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "name": "No regressions across seed and all presets (100% identical accepted rewrites to GM-1)",
+      "status": "PASS",
+      "passed": true,
+      "skipped": false,
+      "details": {
+        "observedRuns": [
+          {
+            "label": "seed",
+            "startSolverCost": "732",
+            "endSolverCost": "426",
+            "solverRules": [
+              8,
+              1,
+              5,
+              11,
+              4,
+              3
+            ],
+            "searcherRules": [
+              5,
+              1,
+              9,
+              11,
+              10
+            ],
+            "matchedGM1": true
+          },
+          {
+            "label": "preset:dot",
+            "startSolverCost": "472",
+            "endSolverCost": "328",
+            "solverRules": [
+              9,
+              3
+            ],
+            "searcherRules": [
+              5,
+              1,
+              9,
+              11,
+              10
+            ],
+            "matchedGM1": true
+          },
+          {
+            "label": "preset:norm",
+            "startSolverCost": "440",
+            "endSolverCost": "350",
+            "solverRules": [
+              6
+            ],
+            "searcherRules": [
+              5,
+              1,
+              9,
+              11,
+              10
+            ],
+            "matchedGM1": true
+          },
+          {
+            "label": "preset:collatz",
+            "startSolverCost": "594",
+            "endSolverCost": "594",
+            "solverRules": [],
+            "searcherRules": [
+              5,
+              1,
+              9,
+              11,
+              10
+            ],
+            "matchedGM1": true
+          }
+        ],
+        "differencesFromGM1": "None on valid rewrites; mutated Rule 4 non-zero unused w1 in audit/forgeries.js is now rejected with noncanonical_certificate instead of accepted."
       }
     }
   ],
@@ -549,6 +1131,45 @@
       ]
     },
     "test6": {
+      "seed": {
+        "preset": "seed",
+        "instructionCount": 774,
+        "selfRewriteOccurred": true,
+        "oldSearcherHash": "382166022",
+        "newSearcherHash": "708145596",
+        "oldExamCost": "29917",
+        "newExamCost": "29879",
+        "examCostDrop": "38",
+        "switchCost": "5",
+        "proofStepsCount": 5,
+        "rulesApplied": [
+          5,
+          1,
+          9,
+          11,
+          10
+        ],
+        "proposalsIdenticalOnExam": true,
+        "validIfOccurred": true
+      },
+      "plain": {
+        "preset": "plain",
+        "instructionCount": 771,
+        "selfRewriteOccurred": true,
+        "oldSearcherHash": "220383755",
+        "newSearcherHash": "590249666",
+        "oldExamCost": "29885",
+        "newExamCost": "29873",
+        "examCostDrop": "12",
+        "switchCost": "5",
+        "proofStepsCount": 2,
+        "rulesApplied": [
+          11,
+          10
+        ],
+        "proposalsIdenticalOnExam": true,
+        "validIfOccurred": true
+      },
       "selfRewriteOccurred": true,
       "oldSearcherHash": "382166022",
       "newSearcherHash": "708145596",
@@ -577,8 +1198,510 @@
       "allScriptsLabeled": true
     },
     "test9": {
-      "browserAvailable": false,
-      "error": "Traceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n    from selenium import webdriver\nModuleNotFoundError: No module named 'selenium'"
+      "ok": true,
+      "driver": "selenium-chromium",
+      "epoch": "4",
+      "solverCost": "426 steps",
+      "searcherCost": "29879 steps",
+      "verdicts": "2 / 2",
+      "exportedStateChars": 128653,
+      "pageErrors": [],
+      "severeConsoleLogs": []
+    },
+    "test10": {
+      "all14RulesRejectedWithIllFormed": true,
+      "perRule": [
+        {
+          "ruleId": 1,
+          "ruleName": "R_ADD_ZERO_R",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 2,
+          "ruleName": "R_ADD_ZERO_L",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 3,
+          "ruleName": "R_SUB_ZERO",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 4,
+          "ruleName": "R_SUB_SELF",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 5,
+          "ruleName": "R_MUL_ONE_R",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 6,
+          "ruleName": "R_MUL_ONE_L",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 7,
+          "ruleName": "R_MUL_ZERO_R",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 8,
+          "ruleName": "R_MUL_TWO_R",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 9,
+          "ruleName": "R_DIV_ONE",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 10,
+          "ruleName": "R_CONST_FOLD_ADD",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 11,
+          "ruleName": "R_CONST_FOLD_MUL",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 12,
+          "ruleName": "R_CONST_FOLD_NEG",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 13,
+          "ruleName": "R_REDUNDANT_LOAD",
+          "accepted": false,
+          "code": "ill_formed_program"
+        },
+        {
+          "ruleId": 14,
+          "ruleName": "R_DEAD_LOAD",
+          "accepted": false,
+          "code": "ill_formed_program"
+        }
+      ],
+      "allLoadPathsRefused": true,
+      "loadPaths": {
+        "constructor_solverProg": {
+          "refused": true,
+          "error": "Ill-formed solverProg in Machine constructor: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+        },
+        "constructor_searcherProg": {
+          "refused": true,
+          "error": "Ill-formed searcherProg in Machine constructor: ill_formed_program: opcode 25 out of range 0..22 at instruction 0"
+        },
+        "constructor_exam": {
+          "refused": true,
+          "error": "Ill-formed exam[0].prog in Machine constructor: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+        },
+        "setSolver": {
+          "refused": true,
+          "error": "Ill-formed solverProg in setSolver: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+        },
+        "setSearcher": {
+          "refused": true,
+          "error": "Ill-formed searcherProg in setSearcher: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+        },
+        "setExam": {
+          "refused": true,
+          "error": "Ill-formed exam[0].prog in setExam: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (LDI)"
+        },
+        "importState": {
+          "refused": true,
+          "error": "Ill-formed solverProg in importState: ill_formed_program: register operand word[1]=99 out of range 0..15 at instruction 0 (INLEN)"
+        }
+      }
+    },
+    "test11": {
+      "probeR4AcceptedWhenAllowIllFormedTrue": true,
+      "probeR14AcceptedWhenAllowIllFormedTrue": true,
+      "probeR4RejectedWhenDefault": true,
+      "probeR14RejectedWhenDefault": true,
+      "test10FailsWhenAllowIllFormedTrue": true
+    },
+    "test12": {
+      "perRule": [
+        {
+          "ruleId": 1,
+          "ruleName": "R_ADD_ZERO_R",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 2,
+          "ruleName": "R_ADD_ZERO_L",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 3,
+          "ruleName": "R_SUB_ZERO",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 4,
+          "ruleName": "R_SUB_SELF",
+          "usesW1": false,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 5,
+          "ruleName": "R_MUL_ONE_R",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 6,
+          "ruleName": "R_MUL_ONE_L",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 7,
+          "ruleName": "R_MUL_ZERO_R",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 8,
+          "ruleName": "R_MUL_TWO_R",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 9,
+          "ruleName": "R_DIV_ONE",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 10,
+          "ruleName": "R_CONST_FOLD_ADD",
+          "usesW1": true,
+          "usesW2": true,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 11,
+          "ruleName": "R_CONST_FOLD_MUL",
+          "usesW1": true,
+          "usesW2": true,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 12,
+          "ruleName": "R_CONST_FOLD_NEG",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 13,
+          "ruleName": "R_REDUNDANT_LOAD",
+          "usesW1": true,
+          "usesW2": true,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 14,
+          "ruleName": "R_DEAD_LOAD",
+          "usesW1": true,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1 (used)",
+              "rejectedCode": "side_condition_violated",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        },
+        {
+          "ruleId": 99,
+          "ruleName": "R_UNSOUND_ADD_TO_MOV",
+          "usesW1": false,
+          "usesW2": false,
+          "canonicalAccepted": true,
+          "noncanonicalChecks": [
+            {
+              "field": "w1",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            },
+            {
+              "field": "w2",
+              "rejectedCode": "noncanonical_certificate",
+              "ok": true
+            }
+          ]
+        }
+      ]
+    },
+    "test13": {
+      "observedRuns": [
+        {
+          "label": "seed",
+          "startSolverCost": "732",
+          "endSolverCost": "426",
+          "solverRules": [
+            8,
+            1,
+            5,
+            11,
+            4,
+            3
+          ],
+          "searcherRules": [
+            5,
+            1,
+            9,
+            11,
+            10
+          ],
+          "matchedGM1": true
+        },
+        {
+          "label": "preset:dot",
+          "startSolverCost": "472",
+          "endSolverCost": "328",
+          "solverRules": [
+            9,
+            3
+          ],
+          "searcherRules": [
+            5,
+            1,
+            9,
+            11,
+            10
+          ],
+          "matchedGM1": true
+        },
+        {
+          "label": "preset:norm",
+          "startSolverCost": "440",
+          "endSolverCost": "350",
+          "solverRules": [
+            6
+          ],
+          "searcherRules": [
+            5,
+            1,
+            9,
+            11,
+            10
+          ],
+          "matchedGM1": true
+        },
+        {
+          "label": "preset:collatz",
+          "startSolverCost": "594",
+          "endSolverCost": "594",
+          "solverRules": [],
+          "searcherRules": [
+            5,
+            1,
+            9,
+            11,
+            10
+          ],
+          "matchedGM1": true
+        }
+      ],
+      "differencesFromGM1": "None on valid rewrites; mutated Rule 4 non-zero unused w1 in audit/forgeries.js is now rejected with noncanonical_certificate instead of accepted."
     }
+  },
+  "summary": {
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0,
+    "total": 13
   }
 }
