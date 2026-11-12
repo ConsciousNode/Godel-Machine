@@ -1,0 +1,3219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;">
+  <title>GM-1 — Proof-Gated Self-Rewriting Machine</title>
+  <!-- Provenance: Inline CSS authored from scratch for GM-1 (Xinu studio rules: zero external dependencies, offline, strict CSP). -->
+  <style>
+    :root {
+      --bg: #0c1017;
+      --panel: #141a24;
+      --panel-alt: #1b2330;
+      --border: #2a3548;
+      --text: #e4eaf2;
+      --muted: #8b9bb4;
+      --accent: #4da3ff;
+      --accent-soft: rgba(77, 163, 255, 0.14);
+      --ok: #38c976;
+      --ok-soft: rgba(56, 201, 118, 0.14);
+      --warn: #f5a623;
+      --err: #ff5c5c;
+      --err-soft: rgba(255, 92, 92, 0.14);
+      --self-tag: #c084fc;
+      --self-soft: rgba(192, 132, 252, 0.16);
+      --mono: "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 18px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      font-family: var(--mono);
+      color: var(--accent);
+    }
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    button, select, input[type="number"] {
+      background: var(--panel-alt);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-family: var(--sans);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover {
+      background: #232e40;
+      border-color: var(--accent);
+    }
+    button.primary {
+      background: var(--accent);
+      color: #06101e;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    button.primary:hover {
+      background: #6eb5ff;
+    }
+    .stat-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 10px;
+      padding: 12px 18px;
+      background: #0f141d;
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 14px 18px;
+      max-width: 1680px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1024px) {
+      main { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .card.full-span {
+      grid-column: 1 / -1;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 13px;
+      background: var(--panel-alt);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 12.5px;
+    }
+    .card-header .meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .card-body {
+      padding: 12px;
+      overflow: auto;
+    }
+    .split-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 768px) {
+      .split-2 { grid-template-columns: 1fr; }
+    }
+    pre, textarea {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.45;
+      background: #0a0e14;
+      color: #d6e2f0;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 9px;
+      margin: 0;
+      overflow: auto;
+    }
+    textarea {
+      width: 100%;
+      resize: vertical;
+      min-height: 120px;
+    }
+    .disasm-box {
+      max-height: 290px;
+      overflow-y: auto;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.ok { background: var(--ok-soft); color: var(--ok); border: 1px solid rgba(56, 201, 118, 0.35); }
+    .badge.err { background: var(--err-soft); color: var(--err); border: 1px solid rgba(255, 92, 92, 0.35); }
+    .badge.self { background: var(--self-soft); color: var(--self-tag); border: 1px solid rgba(192, 132, 252, 0.4); }
+    .badge.solver { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(77, 163, 255, 0.35); }
+    .badge.neutral { background: #1f2937; color: var(--muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      background: #10151f;
+    }
+    .chart-box {
+      width: 100%;
+      height: 165px;
+      background: #0a0e14;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 6px;
+    }
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .status-banner {
+      padding: 8px 11px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: #0e131b;
+    }
+    .label-title {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>GM-1</h1>
+    <span>Proof-Gated Self-Rewriting Machine (BigInt VM &bull; Formal Proof Checker &bull; Self-Referential Searcher)</span>
+  </div>
+  <div class="toolbar">
+    <label style="font-size:12px;color:var(--muted);">Target:
+      <select id="ui-target-select">
+        <option value="auto">Auto (Alternating Solver / Searcher)</option>
+        <option value="0">Solver Only (Component 0)</option>
+        <option value="1">Searcher Self-Rewrite (Component 1)</option>
+      </select>
+    </label>
+    <label style="font-size:12px;color:var(--muted);">Budget:
+      <input type="number" id="ui-budget-input" value="650000" min="1000" step="10000" style="width:95px;">
+    </label>
+    <button class="primary" id="btn-run-epoch">Run 1 Epoch</button>
+    <button id="btn-run-5">Run 5 Epochs</button>
+    <button id="btn-inject-forgery">Test Invalid Certificate</button>
+    <button id="btn-reset-machine">Reset Seed State</button>
+  </div>
+</header>
+
+<section class="stat-strip">
+  <div class="stat-card">
+    <div class="stat-label">Epoch</div>
+    <div class="stat-val" id="stat-epoch">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Solver Hash / Len</div>
+    <div class="stat-val" id="stat-solver-hash">-</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Solver Workload Cost</div>
+    <div class="stat-val" id="stat-solver-cost">-</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Searcher Hash / Len</div>
+    <div class="stat-val" id="stat-searcher-hash">-</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Searcher Exam Cost</div>
+    <div class="stat-val" id="stat-searcher-cost">-</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Accepted / Rejected</div>
+    <div class="stat-val" id="stat-verdicts">0 / 0</div>
+  </div>
+</section>
+
+<main>
+  <!-- Disassembly Views for Both Programs -->
+  <section class="card">
+    <div class="card-header">
+      <span>Solver Program (Component 0 @ Mem 1000)</span>
+      <span class="meta" id="meta-solver-info"></span>
+    </div>
+    <div class="card-body">
+      <pre class="disasm-box" id="ui-solver-disasm"></pre>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <span>Searcher Program (Component 1 @ Mem 5000)</span>
+      <span class="meta" id="meta-searcher-info"></span>
+    </div>
+    <div class="card-body">
+      <pre class="disasm-box" id="ui-searcher-disasm"></pre>
+    </div>
+  </section>
+
+  <!-- Current Proposal, Certificate, and Checker Verdict -->
+  <section class="card">
+    <div class="card-header">
+      <span>Current Proposal &amp; Certificate</span>
+      <span class="meta" id="meta-proposal-info">No proposal yet</span>
+    </div>
+    <div class="card-body">
+      <div class="split-2">
+        <div>
+          <div class="label-title"><span>Certificate Proof Steps</span><span id="ui-cert-step-count">0 steps</span></div>
+          <pre class="disasm-box" id="ui-cert-steps">Run an epoch to inspect emitted certificate steps.</pre>
+        </div>
+        <div>
+          <div class="label-title"><span>Proposed Replacement Disassembly</span><span id="ui-cert-repl-hash"></span></div>
+          <pre class="disasm-box" id="ui-cert-disasm">Run an epoch to inspect proposed replacement program.</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <span>Checker Verdict &amp; Rejection Diagnostics</span>
+      <span class="meta" id="meta-verdict-badge"><span class="badge neutral">IDLE</span></span>
+    </div>
+    <div class="card-body">
+      <div class="status-banner" id="ui-verdict-summary">Checker ready. All rewrites require a formal certificate verified against the fixed rule set and cost model.</div>
+      <div class="label-title"><span>Epoch &amp; Rejection History (with Reason for Each Verdict)</span></div>
+      <div class="disasm-box" style="max-height:215px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Epoch</th>
+              <th>Target</th>
+              <th>Verdict</th>
+              <th>Cost Before &rarr; After</th>
+              <th>Reason / Details</th>
+            </tr>
+          </thead>
+          <tbody id="ui-verdict-log-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accepted-Rewrite Lineage Log & Cost Curves -->
+  <section class="card">
+    <div class="card-header">
+      <span>Accepted-Rewrite Lineage Log (Append-Only)</span>
+      <span class="meta" id="meta-lineage-count">0 accepted rewrites</span>
+    </div>
+    <div class="card-body">
+      <div class="disasm-box" style="max-height:240px;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Epoch</th>
+              <th>Component</th>
+              <th>Old Hash &rarr; New Hash</th>
+              <th>Measured Cost (Before &rarr; After)</th>
+              <th>Switch Cost</th>
+              <th>Proof Steps</th>
+            </tr>
+          </thead>
+          <tbody id="ui-lineage-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <span>Measured Cost Curves (Solver Workload &amp; Searcher Exam)</span>
+      <span class="meta">Switch Cost = 5 steps</span>
+    </div>
+    <div class="card-body">
+      <div class="split-2">
+        <div>
+          <div class="label-title"><span>Solver Workload Cost (Steps)</span><span id="ui-curve-solver-latest"></span></div>
+          <div class="chart-box" id="ui-chart-solver"></div>
+        </div>
+        <div>
+          <div class="label-title"><span>Searcher Exam Cost (Steps)</span><span id="ui-curve-searcher-latest"></span></div>
+          <div class="chart-box" id="ui-chart-searcher"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Load & Replace Solver, Workload, Exam + Export / Import Machine State -->
+  <section class="card full-span">
+    <div class="card-header">
+      <span>Load / Replace Solver, Workload, Exam &amp; Full State Export / Import</span>
+      <span class="meta" id="ui-config-status">Ready</span>
+    </div>
+    <div class="card-body">
+      <div class="split-2">
+        <div>
+          <div class="label-title">
+            <span>Solver Assembly Source (ISA)</span>
+            <select id="ui-preset-solver" style="padding:2px 6px;font-size:11px;">
+              <option value="seed">Preset: Seed Polynomial &amp; Affine Evaluator</option>
+              <option value="dot">Preset: Weighted Prefix Sum</option>
+              <option value="norm">Preset: L1 Manhattan Distance</option>
+              <option value="collatz">Preset: Parity Branching Transform</option>
+            </select>
+          </div>
+          <textarea id="ui-input-solver" rows="8"></textarea>
+          <div class="controls-row">
+            <button id="btn-load-solver">Load &amp; Replace Solver</button>
+          </div>
+        </div>
+        <div>
+          <div class="label-title"><span>Solver Workload JSON (Array of Input Vectors)</span></div>
+          <textarea id="ui-input-workload" rows="3"></textarea>
+          <div class="controls-row" style="margin-bottom:10px;">
+            <button id="btn-load-workload">Replace Workload</button>
+          </div>
+          <div class="label-title"><span>Searcher Exam JSON (Jobs: targetComponent, programAsm/prog, budget)</span></div>
+          <textarea id="ui-input-exam" rows="3"></textarea>
+          <div class="controls-row">
+            <button id="btn-load-exam">Replace Exam</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <div class="label-title"><span>Full Machine State JSON (Deterministic Export / Import)</span></div>
+        <textarea id="ui-state-json" rows="4" placeholder="Click 'Export Machine State' to serialize full state, or paste state JSON here and click 'Import Machine State'."></textarea>
+        <div class="controls-row">
+          <button id="btn-export-state">Export Machine State</button>
+          <button id="btn-import-state">Import Machine State</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Provenance: Inline JavaScript authored from scratch for GM-1 (Xinu studio rules: zero external dependencies, offline, strict CSP, dual browser + Node headless support). -->
+<script>
+(function(root) {
+  'use strict';
+
+  // =========================================================================
+  // 1. FIXED AXIOMS: ISA OPCODES, STEP COSTS, MEMORY LAYOUT, AND HASH FUNCTION
+  // =========================================================================
+
+  const OPCODE_DEFS = [
+    { id: 0,  name: 'NOP',   cost: 1n, fmt: 'none',     desc: 'No operation' },
+    { id: 1,  name: 'HALT',  cost: 1n, fmt: 'none',     desc: 'Terminate execution cleanly' },
+    { id: 2,  name: 'LDI',   cost: 1n, fmt: 'r_imm',    desc: 'Load signed BigInt immediate b into R[a]' },
+    { id: 3,  name: 'MOV',   cost: 1n, fmt: 'rr',       desc: 'Copy R[b] into R[a]' },
+    { id: 4,  name: 'ADD',   cost: 2n, fmt: 'rrr',      desc: 'R[a] = R[b] + R[c]' },
+    { id: 5,  name: 'SUB',   cost: 2n, fmt: 'rrr',      desc: 'R[a] = R[b] - R[c]' },
+    { id: 6,  name: 'MUL',   cost: 6n, fmt: 'rrr',      desc: 'R[a] = R[b] * R[c]' },
+    { id: 7,  name: 'DIV',   cost: 8n, fmt: 'rrr',      desc: 'R[a] = (R[c] === 0n) ? 0n : (R[b] / R[c]) (truncating toward 0)' },
+    { id: 8,  name: 'MOD',   cost: 8n, fmt: 'rrr',      desc: 'R[a] = (R[c] === 0n) ? 0n : (R[b] % R[c])' },
+    { id: 9,  name: 'NEG',   cost: 2n, fmt: 'rr',       desc: 'R[a] = -R[b]' },
+    { id: 10, name: 'CMPEQ', cost: 2n, fmt: 'rrr',      desc: 'R[a] = (R[b] === R[c]) ? 1n : 0n' },
+    { id: 11, name: 'CMPLT', cost: 2n, fmt: 'rrr',      desc: 'R[a] = (R[b] < R[c]) ? 1n : 0n' },
+    { id: 12, name: 'CMPLE', cost: 2n, fmt: 'rrr',      desc: 'R[a] = (R[b] <= R[c]) ? 1n : 0n' },
+    { id: 13, name: 'JMP',   cost: 2n, fmt: 'target',   desc: 'Unconditional jump to PC = c' },
+    { id: 14, name: 'JZ',    cost: 2n, fmt: 'r_target', desc: 'If R[a] === 0n, jump to PC = c' },
+    { id: 15, name: 'JNZ',   cost: 2n, fmt: 'r_target', desc: 'If R[a] !== 0n, jump to PC = c' },
+    { id: 16, name: 'CALL',  cost: 3n, fmt: 'target',   desc: 'Push PC + 1 to call stack and jump to PC = c' },
+    { id: 17, name: 'RET',   cost: 3n, fmt: 'none',     desc: 'Pop PC from call stack (or HALT if call stack is empty)' },
+    { id: 18, name: 'LOAD',  cost: 4n, fmt: 'rr',       desc: 'R[a] = Mem[R[b]] (0n if uninitialized or out of [0, 65536))' },
+    { id: 19, name: 'STORE', cost: 4n, fmt: 'store',    desc: 'Mem[R[b]] = R[c] (no-op if R[b] out of [0, 65536))' },
+    { id: 20, name: 'INLEN', cost: 1n, fmt: 'r',        desc: 'R[a] = length of input vector' },
+    { id: 21, name: 'IN',    cost: 2n, fmt: 'rr',       desc: 'R[a] = Input[R[b]] (0n if R[b] out of bounds)' },
+    { id: 22, name: 'OUT',   cost: 2n, fmt: 'r_only',   desc: 'Append R[a] to output vector' }
+  ];
+
+  const OP_BY_NAME = Object.fromEntries(OPCODE_DEFS.map(o => [o.name, o]));
+  const OP_BY_ID = Object.fromEntries(OPCODE_DEFS.map(o => [o.id, o]));
+
+  const MEMORY_SIZE = 65536n;
+  const SOLVER_MEM_BASE = 1000n;
+  const SEARCHER_MEM_BASE = 5000n;
+  const CERT_MAGIC = 1196241153n; // 0x474D3101 ("GM1\x01")
+  const SWITCH_COST = 5n;
+  const HASH_SEED = 100003n;
+  const HASH_MULT = 131n;
+  const HASH_MOD  = 1000000007n;
+
+  function computeProgramHash(prog) {
+    let h = HASH_SEED;
+    h = (h * HASH_MULT + BigInt(prog.length)) % HASH_MOD;
+    for (let i = 0; i < prog.length; i++) {
+      const inst = prog[i];
+      for (let k = 0; k < 4; k++) {
+        let v = BigInt(inst[k]) % HASH_MOD;
+        if (v < 0n) v += HASH_MOD;
+        h = (h * HASH_MULT + v + BigInt(k + 1)) % HASH_MOD;
+      }
+    }
+    return h;
+  }
+
+  function cloneProg(prog) {
+    return prog.map(inst => [BigInt(inst[0]), BigInt(inst[1]), BigInt(inst[2]), BigInt(inst[3])]);
+  }
+
+  function programsEqual(p1, p2) {
+    if (!p1 || !p2 || p1.length !== p2.length) return false;
+    for (let i = 0; i < p1.length; i++) {
+      for (let k = 0; k < 4; k++) {
+        if (BigInt(p1[i][k]) !== BigInt(p2[i][k])) return false;
+      }
+    }
+    return true;
+  }
+
+  // =========================================================================
+  // 2. ASSEMBLER & DISASSEMBLER
+  // =========================================================================
+
+  function parseReg(tok) {
+    if (tok === undefined || tok === null) throw new Error('Missing register operand');
+    const m = /^r(\d+)$/i.exec(String(tok).trim());
+    if (!m) throw new Error('Invalid register token: ' + tok);
+    const r = Number(m[1]);
+    if (r < 0 || r >= 16) throw new Error('Register index out of range (r0..r15): ' + tok);
+    return BigInt(r);
+  }
+
+  function assemble(src) {
+    if (Array.isArray(src)) return cloneProg(src);
+    const lines = String(src).split(/\r?\n/);
+    const labels = {};
+    const rawInsts = [];
+
+    for (let line of lines) {
+      const semi = line.indexOf(';');
+      if (semi !== -1) line = line.slice(0, semi);
+      const hash = line.indexOf('#');
+      if (hash !== -1) line = line.slice(0, hash);
+      line = line.trim();
+      if (!line) continue;
+
+      while (true) {
+        const lm = /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$/.exec(line);
+        if (!lm) break;
+        labels[lm[1]] = BigInt(rawInsts.length);
+        line = lm[2].trim();
+        if (!line) break;
+      }
+      if (!line) continue;
+
+      const parts = line.split(/[\s,]+/).filter(Boolean);
+      rawInsts.push(parts);
+    }
+
+    const prog = [];
+    for (let i = 0; i < rawInsts.length; i++) {
+      const parts = rawInsts[i];
+      const mnemonic = parts[0].toUpperCase();
+      const op = OP_BY_NAME[mnemonic];
+      if (!op) throw new Error(`Unknown mnemonic '${mnemonic}' at instruction ${i}`);
+
+      let a = 0n, b = 0n, c = 0n;
+      const resolveImmOrLabel = (tok) => {
+        if (tok === undefined) throw new Error(`Missing immediate/label operand at instruction ${i} (${mnemonic})`);
+        if (Object.prototype.hasOwnProperty.call(labels, tok)) return labels[tok];
+        return BigInt(tok);
+      };
+
+      switch (op.fmt) {
+        case 'none':
+          break;
+        case 'r':
+        case 'r_only':
+          a = parseReg(parts[1]);
+          break;
+        case 'r_imm':
+          a = parseReg(parts[1]);
+          b = resolveImmOrLabel(parts[2]);
+          break;
+        case 'rr':
+          a = parseReg(parts[1]);
+          b = parseReg(parts[2]);
+          break;
+        case 'rrr':
+          a = parseReg(parts[1]);
+          b = parseReg(parts[2]);
+          c = parseReg(parts[3]);
+          break;
+        case 'target':
+          c = resolveImmOrLabel(parts[1]);
+          break;
+        case 'r_target':
+          a = parseReg(parts[1]);
+          c = resolveImmOrLabel(parts[2]);
+          break;
+        case 'store':
+          b = parseReg(parts[1]);
+          c = parseReg(parts[2]);
+          break;
+      }
+      prog.push([BigInt(op.id), a, b, c]);
+    }
+    return prog;
+  }
+
+  function disassembleInstruction(inst, idx) {
+    const opId = Number(inst[0]);
+    const a = BigInt(inst[1]), b = BigInt(inst[2]), c = BigInt(inst[3]);
+    const op = OP_BY_ID[opId];
+    const prefix = idx !== undefined ? `${String(idx).padStart(3, '0')}: ` : '';
+    if (!op) return `${prefix}DATA ${inst[0]}, ${a}, ${b}, ${c}`;
+    let body = op.name.padEnd(6, ' ');
+    switch (op.fmt) {
+      case 'none': body = op.name; break;
+      case 'r':
+      case 'r_only': body += `r${a}`; break;
+      case 'r_imm': body += `r${a}, ${b}`; break;
+      case 'rr': body += `r${a}, r${b}`; break;
+      case 'rrr': body += `r${a}, r${b}, r${c}`; break;
+      case 'target': body += `${c}`; break;
+      case 'r_target': body += `r${a}, ${c}`; break;
+      case 'store': body += `r${b}, r${c}`; break;
+    }
+    return `${prefix}${body}   ; cost=${op.cost}`;
+  }
+
+  function disassemble(prog) {
+    if (!prog || !prog.length) return '; (empty program)';
+    return prog.map((inst, idx) => disassembleInstruction(inst, idx)).join('\n');
+  }
+
+  // =========================================================================
+  // 3. VIRTUAL MACHINE (DETERMINISTIC, STEP-COUNTED, BIGINT)
+  // =========================================================================
+
+  function buildInitialMemory(solverProg, searcherProg, extraMem = null) {
+    const mem = new Map();
+    if (solverProg) {
+      mem.set(SOLVER_MEM_BASE, BigInt(solverProg.length));
+      for (let i = 0; i < solverProg.length; i++) {
+        const base = SOLVER_MEM_BASE + 4n + BigInt(i * 4);
+        mem.set(base, BigInt(solverProg[i][0]));
+        mem.set(base + 1n, BigInt(solverProg[i][1]));
+        mem.set(base + 2n, BigInt(solverProg[i][2]));
+        mem.set(base + 3n, BigInt(solverProg[i][3]));
+      }
+    }
+    if (searcherProg) {
+      mem.set(SEARCHER_MEM_BASE, BigInt(searcherProg.length));
+      for (let i = 0; i < searcherProg.length; i++) {
+        const base = SEARCHER_MEM_BASE + 4n + BigInt(i * 4);
+        mem.set(base, BigInt(searcherProg[i][0]));
+        mem.set(base + 1n, BigInt(searcherProg[i][1]));
+        mem.set(base + 2n, BigInt(searcherProg[i][2]));
+        mem.set(base + 3n, BigInt(searcherProg[i][3]));
+      }
+    }
+    if (extraMem) {
+      for (const [k, v] of Object.entries(extraMem)) {
+        mem.set(BigInt(k), BigInt(v));
+      }
+    }
+    return mem;
+  }
+
+  function runVM(prog, inputs = [], budget = 100000n, initMem = null) {
+    const regs = new Array(16).fill(0n);
+    const mem = initMem ? new Map(initMem) : new Map();
+    const inVec = inputs.map(x => BigInt(x));
+    const outputs = [];
+    const callStack = [];
+    let pc = 0;
+    let steps = 0n;
+    let instructionsExecuted = 0n;
+    let halted = false;
+    let status = 'running';
+    const maxStepBudget = BigInt(budget);
+    const n = prog.length;
+
+    while (pc >= 0 && pc < n) {
+      const inst = prog[pc];
+      const opId = Number(inst[0]);
+      const op = OP_BY_ID[opId];
+      if (!op) {
+        status = 'invalid_opcode';
+        break;
+      }
+      if (steps + op.cost > maxStepBudget) {
+        status = 'budget_exceeded';
+        break;
+      }
+      steps += op.cost;
+      instructionsExecuted += 1n;
+
+      const a = BigInt(inst[1]), b = BigInt(inst[2]), c = BigInt(inst[3]);
+      const ra = Number(a), rb = Number(b), rc = Number(c);
+      if (ra < 0 || ra >= 16 || (op.fmt !== 'r_imm' && op.fmt !== 'target' && op.fmt !== 'r_target' && op.fmt !== 'none' && (rb < 0 || rb >= 16))) {
+        status = 'invalid_register';
+        break;
+      }
+
+      let nextPc = pc + 1;
+
+      switch (opId) {
+        case 0: // NOP
+          break;
+        case 1: // HALT
+          halted = true;
+          status = 'halted';
+          break;
+        case 2: // LDI
+          regs[ra] = b;
+          break;
+        case 3: // MOV
+          regs[ra] = regs[rb];
+          break;
+        case 4: // ADD
+          regs[ra] = regs[rb] + regs[rc];
+          break;
+        case 5: // SUB
+          regs[ra] = regs[rb] - regs[rc];
+          break;
+        case 6: // MUL
+          regs[ra] = regs[rb] * regs[rc];
+          break;
+        case 7: // DIV
+          regs[ra] = regs[rc] === 0n ? 0n : (regs[rb] / regs[rc]);
+          break;
+        case 8: // MOD
+          regs[ra] = regs[rc] === 0n ? 0n : (regs[rb] % regs[rc]);
+          break;
+        case 9: // NEG
+          regs[ra] = -regs[rb];
+          break;
+        case 10: // CMPEQ
+          regs[ra] = regs[rb] === regs[rc] ? 1n : 0n;
+          break;
+        case 11: // CMPLT
+          regs[ra] = regs[rb] < regs[rc] ? 1n : 0n;
+          break;
+        case 12: // CMPLE
+          regs[ra] = regs[rb] <= regs[rc] ? 1n : 0n;
+          break;
+        case 13: // JMP
+          nextPc = Number(c);
+          break;
+        case 14: // JZ
+          if (regs[ra] === 0n) nextPc = Number(c);
+          break;
+        case 15: // JNZ
+          if (regs[ra] !== 0n) nextPc = Number(c);
+          break;
+        case 16: // CALL
+          if (callStack.length >= 1024) {
+            status = 'stack_overflow';
+            halted = true;
+          } else {
+            callStack.push(pc + 1);
+            nextPc = Number(c);
+          }
+          break;
+        case 17: // RET
+          if (callStack.length === 0) {
+            halted = true;
+            status = 'halted';
+          } else {
+            nextPc = callStack.pop();
+          }
+          break;
+        case 18: { // LOAD
+          const addr = regs[rb];
+          regs[ra] = (addr >= 0n && addr < MEMORY_SIZE && mem.has(addr)) ? mem.get(addr) : 0n;
+          break;
+        }
+        case 19: { // STORE
+          const addr = regs[rb];
+          if (addr >= 0n && addr < MEMORY_SIZE) {
+            mem.set(addr, regs[rc]);
+          }
+          break;
+        }
+        case 20: // INLEN
+          regs[ra] = BigInt(inVec.length);
+          break;
+        case 21: { // IN
+          const idx = regs[rb];
+          regs[ra] = (idx >= 0n && idx < BigInt(inVec.length)) ? inVec[Number(idx)] : 0n;
+          break;
+        }
+        case 22: // OUT
+          outputs.push(regs[ra]);
+          break;
+      }
+
+      if (halted) break;
+      pc = nextPc;
+    }
+
+    if (status === 'running') {
+      status = 'halted_eof';
+    }
+
+    return { outputs, steps, instructionsExecuted, status, regs, mem };
+  }
+
+  // =========================================================================
+  // 4. PROOF SYSTEM: EQUIVALENCE RULES, SIDE CONDITIONS & FORMAL CHECKER
+  // =========================================================================
+
+  const RULES = [
+    {
+      id: 1,
+      name: 'R_ADD_ZERO_R',
+      costDelta: -1n,
+      oldOp: 'ADD',
+      newOp: 'MOV',
+      pattern: 'ADD rd, rs1, rs2 -> MOV rd, rs1',
+      sideCondition: 'rs2 holds constant 0 at location loc (discharged by LDI witness w1)',
+      costLemma: 'cost(MOV)=1 - cost(ADD)=2 = -1 <= 0',
+      soundness: 'For all x in Z, x + 0 = x. Since witness w1 proves R[rs2] == 0 on all control-flow paths reaching loc, R[rs1] + R[rs2] = R[rs1].'
+    },
+    {
+      id: 2,
+      name: 'R_ADD_ZERO_L',
+      costDelta: -1n,
+      oldOp: 'ADD',
+      newOp: 'MOV',
+      pattern: 'ADD rd, rs1, rs2 -> MOV rd, rs2',
+      sideCondition: 'rs1 holds constant 0 at location loc (discharged by LDI witness w1)',
+      costLemma: 'cost(MOV)=1 - cost(ADD)=2 = -1 <= 0',
+      soundness: 'For all x in Z, 0 + x = x. Witness w1 proves R[rs1] == 0 at loc, so R[rs1] + R[rs2] = R[rs2].'
+    },
+    {
+      id: 3,
+      name: 'R_SUB_ZERO',
+      costDelta: -1n,
+      oldOp: 'SUB',
+      newOp: 'MOV',
+      pattern: 'SUB rd, rs1, rs2 -> MOV rd, rs1',
+      sideCondition: 'rs2 holds constant 0 at location loc (discharged by LDI witness w1)',
+      costLemma: 'cost(MOV)=1 - cost(SUB)=2 = -1 <= 0',
+      soundness: 'For all x in Z, x - 0 = x. Witness w1 proves R[rs2] == 0 at loc, so R[rs1] - R[rs2] = R[rs1].'
+    },
+    {
+      id: 4,
+      name: 'R_SUB_SELF',
+      costDelta: -1n,
+      oldOp: 'SUB',
+      newOp: 'LDI',
+      pattern: 'SUB rd, rs1, rs1 -> LDI rd, 0',
+      sideCondition: 'Syntactic equality of source register indices: rs1 == rs2',
+      costLemma: 'cost(LDI)=1 - cost(SUB)=2 = -1 <= 0',
+      soundness: 'For all x in Z (arbitrary-precision BigInt, no NaN/overflow), x - x = 0.'
+    },
+    {
+      id: 5,
+      name: 'R_MUL_ONE_R',
+      costDelta: -5n,
+      oldOp: 'MUL',
+      newOp: 'MOV',
+      pattern: 'MUL rd, rs1, rs2 -> MOV rd, rs1',
+      sideCondition: 'rs2 holds constant 1 at location loc (discharged by LDI witness w1)',
+      costLemma: 'cost(MOV)=1 - cost(MUL)=6 = -5 <= 0',
+      soundness: 'For all x in Z, x * 1 = x. Witness w1 proves R[rs2] == 1 at loc.'
+    },
+    {
+      id: 6,
+      name: 'R_MUL_ONE_L',
+      costDelta: -5n,
+      oldOp: 'MUL',
+      newOp: 'MOV',
+      pattern: 'MUL rd, rs1, rs2 -> MOV rd, rs2',
+      sideCondition: 'rs1 holds constant 1 at location loc (discharged by LDI witness w1)',
+      costLemma: 'cost(MOV)=1 - cost(MUL)=6 = -5 <= 0',
+      soundness: 'For all x in Z, 1 * x = x. Witness w1 proves R[rs1] == 1 at loc.'
+    },
+    {
+      id: 7,
+      name: 'R_MUL_ZERO_R',
+      costDelta: -5n,
+      oldOp: 'MUL',
+      newOp: 'LDI',
+      pattern: 'MUL rd, rs1, rs2 -> LDI rd, 0',
+      sideCondition: 'rs2 holds constant 0 at location loc (discharged by LDI witness w1)',
+      costLemma: 'cost(LDI)=1 - cost(MUL)=6 = -5 <= 0',
+      soundness: 'For all x in Z, x * 0 = 0. Witness w1 proves R[rs2] == 0 at loc.'
+    },
+    {
+      id: 8,
+      name: 'R_MUL_TWO_R',
+      costDelta: -4n,
+      oldOp: 'MUL',
+      newOp: 'ADD',
+      pattern: 'MUL rd, rs1, rs2 -> ADD rd, rs1, rs1',
+      sideCondition: 'rs2 holds constant 2 at location loc (discharged by LDI witness w1)',
+      costLemma: 'cost(ADD)=2 - cost(MUL)=6 = -4 <= 0',
+      soundness: 'Strength reduction: for all x in Z, x * 2 = x + x. Witness w1 proves R[rs2] == 2 at loc.'
+    },
+    {
+      id: 9,
+      name: 'R_DIV_ONE',
+      costDelta: -7n,
+      oldOp: 'DIV',
+      newOp: 'MOV',
+      pattern: 'DIV rd, rs1, rs2 -> MOV rd, rs1',
+      sideCondition: 'rs2 holds constant 1 at location loc (discharged by LDI witness w1)',
+      costLemma: 'cost(MOV)=1 - cost(DIV)=8 = -7 <= 0',
+      soundness: 'For all x in Z, truncating integer division x / 1 = x. Witness w1 proves R[rs2] == 1 at loc.'
+    },
+    {
+      id: 10,
+      name: 'R_CONST_FOLD_ADD',
+      costDelta: -1n,
+      oldOp: 'ADD',
+      newOp: 'LDI',
+      pattern: 'ADD rd, rs1, rs2 -> LDI rd, (c1 + c2)',
+      sideCondition: 'rs1 holds constant c1 (witness w1) and rs2 holds constant c2 (witness w2) at location loc',
+      costLemma: 'cost(LDI)=1 - cost(ADD)=2 = -1 <= 0',
+      soundness: 'Constant folding for addition: when R[rs1] == c1 and R[rs2] == c2 on all paths to loc, R[rs1] + R[rs2] == c1 + c2.'
+    },
+    {
+      id: 11,
+      name: 'R_CONST_FOLD_MUL',
+      costDelta: -5n,
+      oldOp: 'MUL',
+      newOp: 'LDI',
+      pattern: 'MUL rd, rs1, rs2 -> LDI rd, (c1 * c2)',
+      sideCondition: 'rs1 holds constant c1 (witness w1) and rs2 holds constant c2 (witness w2) at location loc',
+      costLemma: 'cost(LDI)=1 - cost(MUL)=6 = -5 <= 0',
+      soundness: 'Constant folding for multiplication: when R[rs1] == c1 and R[rs2] == c2 on all paths to loc, R[rs1] * R[rs2] == c1 * c2.'
+    },
+    {
+      id: 12,
+      name: 'R_CONST_FOLD_NEG',
+      costDelta: -1n,
+      oldOp: 'NEG',
+      newOp: 'LDI',
+      pattern: 'NEG rd, rs1 -> LDI rd, (-c1)',
+      sideCondition: 'rs1 holds constant c1 (witness w1) at location loc',
+      costLemma: 'cost(LDI)=1 - cost(NEG)=2 = -1 <= 0',
+      soundness: 'Constant folding for negation: when R[rs1] == c1 at loc, -R[rs1] == -c1.'
+    },
+    {
+      id: 13,
+      name: 'R_REDUNDANT_LOAD',
+      costDelta: -3n,
+      oldOp: 'LOAD',
+      newOp: 'MOV',
+      pattern: 'LOAD rd, r_addr -> MOV rd, r_val (after STORE r_addr, r_val)',
+      sideCondition: 'w1 == loc - 1 is STORE r_addr, r_val, loc is not a branch target, and r_addr holds a valid constant address in [0, 65536) via witness w2',
+      costLemma: 'cost(MOV)=1 - cost(LOAD)=4 = -3 <= 0',
+      soundness: 'Store-to-load forwarding: STORE writes R[r_val] to Mem[R[r_addr]] (valid in [0, 65536)), and with no intervening branch target at loc, the immediately following LOAD from R[r_addr] reads back R[r_val].'
+    },
+    {
+      id: 14,
+      name: 'R_DEAD_LOAD',
+      costDelta: -3n,
+      oldOp: 'LOAD',
+      newOp: 'NOP',
+      pattern: 'LOAD rd, r_addr -> NOP (when immediately overwritten at loc + 1)',
+      sideCondition: 'w1 == loc + 1 is within bounds and overwrites register rd without reading rd',
+      costLemma: 'cost(NOP)=1 - cost(LOAD)=4 = -3 <= 0',
+      soundness: 'Dead-load elimination: LOAD has no side effects other than writing R[rd]. Since execution falls through directly from loc to loc + 1 which overwrites R[rd] without reading it, the loaded value is dead on every path through loc.'
+    }
+  ];
+
+  const UNSOUND_RULE = {
+    id: 99,
+    name: 'R_UNSOUND_ADD_TO_MOV',
+    costDelta: -1n,
+    oldOp: 'ADD',
+    newOp: 'MOV',
+    pattern: 'ADD rd, rs1, rs2 -> MOV rd, rs1 (DELIBERATELY UNSOUND)',
+    sideCondition: 'None (omits check that rs2 == 0; enabled only when machine option unsoundRule: true)',
+    costLemma: 'cost(MOV)=1 - cost(ADD)=2 = -1 <= 0',
+    soundness: 'UNSOUND POSITIVE CONTROL: drops addend rs2 when rs2 != 0.'
+  };
+
+  function getRuleMap(options = {}) {
+    const map = new Map(RULES.map(r => [r.id, r]));
+    if (options && options.unsoundRule) {
+      map.set(UNSOUND_RULE.id, UNSOUND_RULE);
+    }
+    return map;
+  }
+
+  function writesReg(inst, reg) {
+    const op = Number(inst[0]);
+    const a = BigInt(inst[1]);
+    if ([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 20, 21].includes(op)) {
+      return a === BigInt(reg);
+    }
+    return false;
+  }
+
+  function readsReg(inst, reg) {
+    const op = Number(inst[0]);
+    const a = BigInt(inst[1]), b = BigInt(inst[2]), c = BigInt(inst[3]);
+    const r = BigInt(reg);
+    switch (op) {
+      case 3: case 9: case 18: case 21:
+        return b === r;
+      case 4: case 5: case 6: case 7: case 8:
+      case 10: case 11: case 12:
+        return b === r || c === r;
+      case 14: case 15: case 22:
+        return a === r;
+      case 19:
+        return b === r || c === r;
+      default:
+        return false;
+    }
+  }
+
+  function isControlTransfer(inst) {
+    const op = Number(inst[0]);
+    return [1, 13, 14, 15, 16, 17].includes(op);
+  }
+
+  function hasBranchTargetInRange(prog, startExclusive, endInclusive) {
+    for (let i = 0; i < prog.length; i++) {
+      const op = Number(prog[i][0]);
+      if ([13, 14, 15, 16].includes(op)) {
+        const target = Number(prog[i][3]);
+        if (target > startExclusive && target <= endInclusive) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function verifyConstantAt(prog, loc, witnessLoc, reg) {
+    const wIdx = Number(witnessLoc);
+    const lIdx = Number(loc);
+    if (!Number.isInteger(wIdx) || wIdx < 0 || wIdx >= lIdx || lIdx >= prog.length) {
+      return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: witness index ${wIdx} out of valid range [0, ${lIdx})` };
+    }
+    const wInst = prog[wIdx];
+    if (Number(wInst[0]) !== 2 || BigInt(wInst[1]) !== BigInt(reg)) {
+      return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: witness at ${wIdx} is not LDI r${reg}, imm` };
+    }
+    const constVal = BigInt(wInst[2]);
+
+    // Mode A: Local straight-line basic block from wIdx to lIdx
+    let localOk = true;
+    if (hasBranchTargetInRange(prog, wIdx, lIdx)) {
+      localOk = false;
+    } else {
+      for (let k = wIdx + 1; k < lIdx; k++) {
+        if (isControlTransfer(prog[k]) || writesReg(prog[k], reg)) {
+          localOk = false;
+          break;
+        }
+      }
+    }
+    if (localOk) {
+      return { ok: true, value: constVal };
+    }
+
+    // Mode B: Entry-block global invariant constant
+    // 1) No control transfers in 0..wIdx-1 and no branch target in (0, wIdx]
+    if (hasBranchTargetInRange(prog, 0, wIdx)) {
+      return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: branch target before witness ${wIdx} and local path invalid` };
+    }
+    for (let k = 0; k < wIdx; k++) {
+      if (isControlTransfer(prog[k])) {
+        return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: control transfer before witness ${wIdx} and local path invalid` };
+      }
+    }
+    // 2) No instruction anywhere in prog other than wIdx writes to reg
+    for (let k = 0; k < prog.length; k++) {
+      if (k !== wIdx && writesReg(prog[k], reg)) {
+        return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: register r${reg} modified at instruction ${k}` };
+      }
+    }
+    return { ok: true, value: constVal };
+  }
+
+  function applyAndCheckStep(prog, step, options = {}) {
+    const ruleMap = getRuleMap(options);
+    const ruleId = Number(step.ruleId);
+    const loc = Number(step.loc);
+    const w1 = Number(step.w1);
+    const w2 = Number(step.w2);
+    const claimedDelta = BigInt(step.costDelta);
+
+    if (!ruleMap.has(ruleId)) {
+      return { ok: false, code: 'wrong_rule', reason: `wrong_rule: rule ID ${ruleId} does not exist in active rule set` };
+    }
+    const rule = ruleMap.get(ruleId);
+    if (claimedDelta !== rule.costDelta) {
+      return { ok: false, code: 'false_cost_claim', reason: `false_cost_claim: rule ${rule.name} costDelta is ${rule.costDelta}, but certificate claimed ${claimedDelta}` };
+    }
+    if (!Number.isInteger(loc) || loc < 0 || loc >= prog.length) {
+      return { ok: false, code: 'wrong_location', reason: `wrong_location: instruction index ${loc} out of bounds [0, ${prog.length - 1}]` };
+    }
+
+    const inst = prog[loc];
+    const op = Number(inst[0]);
+    const a = BigInt(inst[1]), b = BigInt(inst[2]), c = BigInt(inst[3]);
+    const nextProg = cloneProg(prog);
+
+    switch (ruleId) {
+      case 1: { // R_ADD_ZERO_R
+        if (op !== 4) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_ADD_ZERO_R requires ADD at ${loc}, found op ${op}` };
+        const cw = verifyConstantAt(prog, loc, w1, c);
+        if (!cw.ok) return cw;
+        if (cw.value !== 0n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_ADD_ZERO_R requires rs2 == 0, got ${cw.value}` };
+        nextProg[loc] = [3n, a, b, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 2: { // R_ADD_ZERO_L
+        if (op !== 4) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_ADD_ZERO_L requires ADD at ${loc}, found op ${op}` };
+        const cw = verifyConstantAt(prog, loc, w1, b);
+        if (!cw.ok) return cw;
+        if (cw.value !== 0n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_ADD_ZERO_L requires rs1 == 0, got ${cw.value}` };
+        nextProg[loc] = [3n, a, c, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 3: { // R_SUB_ZERO
+        if (op !== 5) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_SUB_ZERO requires SUB at ${loc}, found op ${op}` };
+        const cw = verifyConstantAt(prog, loc, w1, c);
+        if (!cw.ok) return cw;
+        if (cw.value !== 0n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_SUB_ZERO requires rs2 == 0, got ${cw.value}` };
+        nextProg[loc] = [3n, a, b, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 4: { // R_SUB_SELF
+        if (op !== 5) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_SUB_SELF requires SUB at ${loc}, found op ${op}` };
+        if (b !== c) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_SUB_SELF requires rs1 == rs2, got r${b} != r${c}` };
+        nextProg[loc] = [2n, a, 0n, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 5: { // R_MUL_ONE_R
+        if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_MUL_ONE_R requires MUL at ${loc}, found op ${op}` };
+        const cw = verifyConstantAt(prog, loc, w1, c);
+        if (!cw.ok) return cw;
+        if (cw.value !== 1n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_MUL_ONE_R requires rs2 == 1, got ${cw.value}` };
+        nextProg[loc] = [3n, a, b, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 6: { // R_MUL_ONE_L
+        if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_MUL_ONE_L requires MUL at ${loc}, found op ${op}` };
+        const cw = verifyConstantAt(prog, loc, w1, b);
+        if (!cw.ok) return cw;
+        if (cw.value !== 1n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_MUL_ONE_L requires rs1 == 1, got ${cw.value}` };
+        nextProg[loc] = [3n, a, c, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 7: { // R_MUL_ZERO_R
+        if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_MUL_ZERO_R requires MUL at ${loc}, found op ${op}` };
+        const cw = verifyConstantAt(prog, loc, w1, c);
+        if (!cw.ok) return cw;
+        if (cw.value !== 0n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_MUL_ZERO_R requires rs2 == 0, got ${cw.value}` };
+        nextProg[loc] = [2n, a, 0n, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 8: { // R_MUL_TWO_R
+        if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_MUL_TWO_R requires MUL at ${loc}, found op ${op}` };
+        const cw = verifyConstantAt(prog, loc, w1, c);
+        if (!cw.ok) return cw;
+        if (cw.value !== 2n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_MUL_TWO_R requires rs2 == 2, got ${cw.value}` };
+        nextProg[loc] = [4n, a, b, b];
+        return { ok: true, prog: nextProg };
+      }
+      case 9: { // R_DIV_ONE
+        if (op !== 7) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_DIV_ONE requires DIV at ${loc}, found op ${op}` };
+        const cw = verifyConstantAt(prog, loc, w1, c);
+        if (!cw.ok) return cw;
+        if (cw.value !== 1n) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_DIV_ONE requires rs2 == 1, got ${cw.value}` };
+        nextProg[loc] = [3n, a, b, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 10: { // R_CONST_FOLD_ADD
+        if (op !== 4) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_CONST_FOLD_ADD requires ADD at ${loc}, found op ${op}` };
+        const cw1 = verifyConstantAt(prog, loc, w1, b);
+        if (!cw1.ok) return cw1;
+        const cw2 = verifyConstantAt(prog, loc, w2, c);
+        if (!cw2.ok) return cw2;
+        nextProg[loc] = [2n, a, cw1.value + cw2.value, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 11: { // R_CONST_FOLD_MUL
+        if (op !== 6) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_CONST_FOLD_MUL requires MUL at ${loc}, found op ${op}` };
+        const cw1 = verifyConstantAt(prog, loc, w1, b);
+        if (!cw1.ok) return cw1;
+        const cw2 = verifyConstantAt(prog, loc, w2, c);
+        if (!cw2.ok) return cw2;
+        nextProg[loc] = [2n, a, cw1.value * cw2.value, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 12: { // R_CONST_FOLD_NEG
+        if (op !== 9) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_CONST_FOLD_NEG requires NEG at ${loc}, found op ${op}` };
+        const cw1 = verifyConstantAt(prog, loc, w1, b);
+        if (!cw1.ok) return cw1;
+        nextProg[loc] = [2n, a, -cw1.value, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 13: { // R_REDUNDANT_LOAD
+        if (op !== 18) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_REDUNDANT_LOAD requires LOAD at ${loc}, found op ${op}` };
+        if (w1 !== loc - 1 || w1 < 0) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_REDUNDANT_LOAD requires w1 == loc - 1` };
+        if (hasBranchTargetInRange(prog, w1, loc)) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: branch target at ${loc}` };
+        const prev = prog[w1];
+        if (Number(prev[0]) !== 19 || BigInt(prev[2]) !== b) {
+          return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: preceding instruction is not STORE to r${b}` };
+        }
+        const cwAddr = verifyConstantAt(prog, w1, w2, b);
+        if (!cwAddr.ok || cwAddr.value < 0n || cwAddr.value >= MEMORY_SIZE) {
+          return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_REDUNDANT_LOAD requires valid in-bounds address witness w2` };
+        }
+        const rVal = BigInt(prev[3]);
+        nextProg[loc] = [3n, a, rVal, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 14: { // R_DEAD_LOAD
+        if (op !== 18) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_DEAD_LOAD requires LOAD at ${loc}, found op ${op}` };
+        if (w1 !== loc + 1 || w1 >= prog.length) return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: R_DEAD_LOAD requires w1 == loc + 1 within bounds` };
+        const nextInst = prog[w1];
+        if (!writesReg(nextInst, a) || readsReg(nextInst, a)) {
+          return { ok: false, code: 'side_condition_violated', reason: `side_condition_violated: instruction at ${w1} does not overwrite r${a} without reading it` };
+        }
+        nextProg[loc] = [0n, 0n, 0n, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      case 99: { // UNSOUND_RULE
+        if (op !== 4) return { ok: false, code: 'wrong_location', reason: `wrong_location: rule R_UNSOUND_ADD_TO_MOV requires ADD at ${loc}, found op ${op}` };
+        nextProg[loc] = [3n, a, b, 0n];
+        return { ok: true, prog: nextProg };
+      }
+      default:
+        return { ok: false, code: 'wrong_rule', reason: `wrong_rule: unhandled rule ${ruleId}` };
+    }
+  }
+
+  function parseCertificate(words) {
+    if (!Array.isArray(words) || words.length === 0) {
+      return { ok: false, code: 'empty_proposal', reason: 'empty_proposal: searcher emitted no certificate words' };
+    }
+    if (words.length < 5) {
+      return { ok: false, code: 'truncated_proof', reason: `truncated_proof: certificate has ${words.length} words (minimum header is 5)` };
+    }
+    const magic = BigInt(words[0]);
+    if (magic !== CERT_MAGIC) {
+      return { ok: false, code: 'invalid_magic', reason: `invalid_magic: expected ${CERT_MAGIC}, got ${magic}` };
+    }
+    const targetComponent = Number(words[1]);
+    if (targetComponent !== 0 && targetComponent !== 1) {
+      return { ok: false, code: 'wrong_component', reason: `wrong_component: invalid targetComponent ${targetComponent} (must be 0 or 1)` };
+    }
+    const targetHash = BigInt(words[2]);
+    const n = Number(words[3]);
+    if (!Number.isInteger(n) || n <= 0) {
+      return { ok: false, code: 'truncated_proof', reason: `truncated_proof: invalid replacement program length ${n}` };
+    }
+    const minBeforeSteps = 4 + n * 4 + 1;
+    if (words.length < minBeforeSteps) {
+      return { ok: false, code: 'truncated_proof', reason: `truncated_proof: expected at least ${minBeforeSteps} words for replacement program, got ${words.length}` };
+    }
+    const replacementProg = [];
+    let idx = 4;
+    for (let i = 0; i < n; i++) {
+      replacementProg.push([
+        BigInt(words[idx]),
+        BigInt(words[idx + 1]),
+        BigInt(words[idx + 2]),
+        BigInt(words[idx + 3])
+      ]);
+      idx += 4;
+    }
+    const s = Number(words[idx++]);
+    if (!Number.isInteger(s) || s <= 0) {
+      return { ok: false, code: 'truncated_proof', reason: `truncated_proof: proof step count must be >= 1, got ${s}` };
+    }
+    const expectedTotal = idx + s * 5;
+    if (words.length !== expectedTotal) {
+      return { ok: false, code: 'truncated_proof', reason: `truncated_proof: expected ${expectedTotal} words for ${s} proof steps, got ${words.length}` };
+    }
+    const steps = [];
+    for (let i = 0; i < s; i++) {
+      steps.push({
+        ruleId: Number(words[idx]),
+        loc: Number(words[idx + 1]),
+        w1: Number(words[idx + 2]),
+        w2: Number(words[idx + 3]),
+        costDelta: BigInt(words[idx + 4])
+      });
+      idx += 5;
+    }
+    return {
+      ok: true,
+      cert: {
+        magic,
+        targetComponent,
+        targetHash,
+        replacementLength: n,
+        replacementProg,
+        stepCount: s,
+        steps
+      }
+    };
+  }
+
+  function serializeCertificate(cert) {
+    const words = [
+      BigInt(cert.magic !== undefined ? cert.magic : CERT_MAGIC),
+      BigInt(cert.targetComponent),
+      BigInt(cert.targetHash),
+      BigInt(cert.replacementProg.length)
+    ];
+    for (const inst of cert.replacementProg) {
+      words.push(BigInt(inst[0]), BigInt(inst[1]), BigInt(inst[2]), BigInt(inst[3]));
+    }
+    words.push(BigInt(cert.steps.length));
+    for (const st of cert.steps) {
+      words.push(
+        BigInt(st.ruleId),
+        BigInt(st.loc),
+        BigInt(st.w1),
+        BigInt(st.w2),
+        BigInt(st.costDelta)
+      );
+    }
+    return words;
+  }
+
+  function measureSolverWorkloadCost(solverProg, workload, budgetPerInput = 200000n) {
+    let totalSteps = 0n;
+    const outputsPerRun = [];
+    for (let i = 0; i < workload.length; i++) {
+      const res = runVM(solverProg, workload[i], budgetPerInput, null);
+      if (res.status !== 'halted' && res.status !== 'halted_eof') {
+        return { ok: false, status: res.status, totalSteps: res.steps };
+      }
+      totalSteps += res.steps;
+      outputsPerRun.push(res.outputs);
+    }
+    return { ok: true, totalSteps, outputsPerRun };
+  }
+
+  function measureSearcherExamCost(searcherProg, exam, currentSolverProg = null) {
+    let totalSteps = 0n;
+    const proposalsPerJob = [];
+    for (let i = 0; i < exam.length; i++) {
+      const job = exam[i];
+      const targetComp = Number(job.targetComponent || 0);
+      const jobProg = job.prog ? cloneProg(job.prog) : (job.programAsm ? assemble(job.programAsm) : cloneProg(currentSolverProg));
+      const budget = BigInt(job.budget || 600000n);
+      const mem = targetComp === 0
+        ? buildInitialMemory(jobProg, searcherProg)
+        : buildInitialMemory(currentSolverProg || jobProg, jobProg);
+      const inputs = job.inputs ? job.inputs.map(BigInt) : [BigInt(targetComp), 0n];
+      const res = runVM(searcherProg, inputs, budget, mem);
+      if (res.status !== 'halted' && res.status !== 'halted_eof') {
+        return { ok: false, status: res.status, totalSteps: res.steps };
+      }
+      totalSteps += res.steps;
+      proposalsPerJob.push(res.outputs);
+    }
+    return { ok: true, totalSteps, proposalsPerJob };
+  }
+
+  // Fixed Formal Checker: recomputes hashes, rule applications, side conditions, and measured cost drop.
+  function checkCertificate(rawWordsOrCert, machineState, options = {}) {
+    let cert;
+    if (Array.isArray(rawWordsOrCert)) {
+      const parsed = parseCertificate(rawWordsOrCert);
+      if (!parsed.ok) {
+        return { accepted: false, code: parsed.code, reason: parsed.reason, cert: null };
+      }
+      cert = parsed.cert;
+    } else if (rawWordsOrCert && typeof rawWordsOrCert === 'object') {
+      cert = rawWordsOrCert;
+      if (!cert.replacementProg || !Array.isArray(cert.steps) || cert.steps.length === 0) {
+        return { accepted: false, code: 'truncated_proof', reason: 'truncated_proof: malformed certificate structure', cert };
+      }
+    } else {
+      return { accepted: false, code: 'truncated_proof', reason: 'truncated_proof: missing certificate data', cert: null };
+    }
+
+    const { targetComponent, targetHash, replacementProg, steps } = cert;
+    if (targetComponent !== 0 && targetComponent !== 1) {
+      return { accepted: false, code: 'wrong_component', reason: `wrong_component: targetComponent must be 0 (solver) or 1 (searcher), got ${targetComponent}`, cert };
+    }
+
+    // If caller specifies an expectedTargetComponent (e.g. from job context), verify it matches
+    if (options.expectedTargetComponent !== undefined && targetComponent !== Number(options.expectedTargetComponent)) {
+      return {
+        accepted: false,
+        code: 'wrong_component',
+        reason: `wrong_component: certificate targets component ${targetComponent}, expected component ${options.expectedTargetComponent}`,
+        cert
+      };
+    }
+
+    const activeProg = targetComponent === 0 ? machineState.solverProg : machineState.searcherProg;
+    const otherProg  = targetComponent === 0 ? machineState.searcherProg : machineState.solverProg;
+    const actualHash = computeProgramHash(activeProg);
+    const otherHash  = otherProg ? computeProgramHash(otherProg) : -1n;
+
+    if (BigInt(targetHash) !== actualHash) {
+      if (BigInt(targetHash) === otherHash) {
+        return {
+          accepted: false,
+          code: 'wrong_component',
+          reason: `wrong_component: certificate targetHash ${targetHash} belongs to the other component, not component ${targetComponent} (hash ${actualHash})`,
+          cert
+        };
+      }
+      return {
+        accepted: false,
+        code: 'stale_target_hash',
+        reason: `stale_target_hash: certificate targetHash ${targetHash} does not match current component ${targetComponent} hash ${actualHash}`,
+        cert
+      };
+    }
+
+    // Apply each proof step sequentially starting from a fresh copy of activeProg
+    let derivedProg = cloneProg(activeProg);
+    let totalProvedDelta = 0n;
+
+    for (let i = 0; i < steps.length; i++) {
+      const stepRes = applyAndCheckStep(derivedProg, steps[i], options);
+      if (!stepRes.ok) {
+        return {
+          accepted: false,
+          code: stepRes.code,
+          reason: `Step ${i} failed: ${stepRes.reason}`,
+          cert
+        };
+      }
+      derivedProg = stepRes.prog;
+      totalProvedDelta += BigInt(steps[i].costDelta);
+    }
+
+    // Verify that the derived program after all proof steps matches replacementProg word-for-word
+    const derivedHash = computeProgramHash(derivedProg);
+    const replacementHash = computeProgramHash(replacementProg);
+    if (!programsEqual(derivedProg, replacementProg) || derivedHash !== replacementHash) {
+      return {
+        accepted: false,
+        code: 'replacement_mismatch',
+        reason: `replacement_mismatch: replacement program (hash ${replacementHash}) does not match proof-derived program (hash ${derivedHash}); unproved instruction change`,
+        cert
+      };
+    }
+
+    // Measure cost before and after on fixed workload (for solver) or exam (for searcher)
+    const switchCost = machineState.switchCost !== undefined ? BigInt(machineState.switchCost) : SWITCH_COST;
+    let costBefore = 0n;
+    let costAfter = 0n;
+
+    if (targetComponent === 0) {
+      const beforeEval = measureSolverWorkloadCost(activeProg, machineState.workload);
+      const afterEval  = measureSolverWorkloadCost(replacementProg, machineState.workload);
+      if (!beforeEval.ok || !afterEval.ok) {
+        return {
+          accepted: false,
+          code: 'execution_error',
+          reason: `execution_error: solver failed on workload (${beforeEval.status || afterEval.status})`,
+          cert
+        };
+      }
+      costBefore = beforeEval.totalSteps;
+      costAfter  = afterEval.totalSteps;
+    } else {
+      const beforeEval = measureSearcherExamCost(activeProg, machineState.exam, machineState.solverProg);
+      const afterEval  = measureSearcherExamCost(replacementProg, machineState.exam, machineState.solverProg);
+      if (!beforeEval.ok || !afterEval.ok) {
+        return {
+          accepted: false,
+          code: 'execution_error',
+          reason: `execution_error: searcher failed on exam (${beforeEval.status || afterEval.status})`,
+          cert
+        };
+      }
+      costBefore = beforeEval.totalSteps;
+      costAfter  = afterEval.totalSteps;
+    }
+
+    const measuredDrop = costBefore - costAfter;
+    if (measuredDrop <= switchCost) {
+      return {
+        accepted: false,
+        code: 'insufficient_cost_drop',
+        reason: `insufficient_cost_drop: measured cost drop ${measuredDrop} (${costBefore} -> ${costAfter}) is not strictly greater than switch cost ${switchCost}`,
+        cert,
+        costBefore,
+        costAfter,
+        measuredDrop
+      };
+    }
+
+    return {
+      accepted: true,
+      code: 'accepted',
+      reason: `Accepted ${steps.length}-step proof: cost dropped by ${measuredDrop} steps (${costBefore} -> ${costAfter}, switchCost=${switchCost})`,
+      cert,
+      oldHash: actualHash,
+      newHash: replacementHash,
+      costBefore,
+      costAfter,
+      measuredDrop,
+      switchCost,
+      totalProvedDelta
+    };
+  }
+
+  // =========================================================================
+  // 5. SEED SOLVER, PRESET SOLVERS, SEED SEARCHER, WORKLOAD & EXAM
+  // =========================================================================
+
+  const SEED_SOLVER_ASM = `; GM-1 Seed Solver: Polynomial & Affine Checksum Evaluator
+; Task: Given an input vector X = [x_0, x_1, ..., x_{n-1}], computes for each element:
+;   y_i = ((x_i * 2) + 0) * 1 + (3 * 5) - (x_i - x_i)
+; Algebraically equivalent to y_i = (x_i + x_i) + 15.
+start:
+  INLEN r1
+  LDI r0, 0
+  LDI r10, 0
+  LDI r11, 1
+  LDI r12, 2
+  LDI r13, 3
+  LDI r14, 5
+loop:
+  CMPLT r2, r0, r1
+  JZ r2, done
+  IN r3, r0
+  MUL r4, r3, r12     ; x_i * 2
+  ADD r4, r4, r10     ; + 0
+  MUL r4, r4, r11     ; * 1
+  MUL r5, r13, r14    ; 3 * 5
+  ADD r4, r4, r5      ; + 15
+  SUB r6, r3, r3      ; x_i - x_i
+  SUB r4, r4, r6      ; - 0
+  OUT r4
+  ADD r0, r0, r11
+  JMP loop
+done:
+  HALT`;
+
+  const PRESET_SOLVERS = {
+    seed: SEED_SOLVER_ASM,
+    dot: `; Solver 2: Running Prefix Accumulator with Scaling
+; Computes running sum s_i = s_{i-1} + x_i, emitting s_i.
+start:
+  INLEN r1
+  LDI r0, 0
+  LDI r4, 0           ; running sum
+  LDI r8, 1
+  LDI r9, 0
+loop:
+  CMPLT r2, r0, r1
+  JZ r2, done
+  IN r3, r0
+  DIV r3, r3, r8      ; x_i / 1
+  ADD r4, r4, r3
+  SUB r4, r4, r9      ; - 0
+  OUT r4
+  ADD r0, r0, r8
+  JMP loop
+done:
+  HALT`,
+    norm: `; Solver 3: Absolute Value (L1 Magnitude) Stream
+; Emits |x_i| for each input x_i using conditional branch.
+start:
+  INLEN r1
+  LDI r0, 0
+  LDI r7, 0
+  LDI r8, 1
+loop:
+  CMPLT r2, r0, r1
+  JZ r2, done
+  IN r3, r0
+  CMPLT r4, r3, r7
+  JZ r4, non_neg
+  NEG r3, r3
+non_neg:
+  MUL r5, r8, r3      ; 1 * |x_i|
+  OUT r5
+  ADD r0, r0, r8
+  JMP loop
+done:
+  HALT`,
+    collatz: `; Solver 4: Parity Step Function
+; For each x_i: if x_i % 2 == 0 emits x_i / 2, else emits 3 * x_i + 1.
+start:
+  INLEN r1
+  LDI r0, 0
+  LDI r6, 1
+  LDI r7, 2
+  LDI r8, 3
+loop:
+  CMPLT r2, r0, r1
+  JZ r2, done
+  IN r3, r0
+  MOD r4, r3, r7
+  JZ r4, is_even
+  MUL r5, r3, r8
+  ADD r5, r5, r6
+  JMP emit_val
+is_even:
+  DIV r5, r3, r7
+emit_val:
+  OUT r5
+  ADD r0, r0, r6
+  JMP loop
+done:
+  HALT`
+  };
+
+  const SEED_SEARCHER_ASM = `; GM-1 Seed Searcher Program (runs natively on the GM-1 VM)
+; Inspects target component in VM memory (0 -> Solver at 1000, 1 -> Searcher at 5000),
+; builds entry-block global constant table and local basic-block constant table,
+; proposes sound cost-reducing rewrites (Rules 1..14), records formal proof steps,
+; and outputs a complete Certificate via OUT.
+start:
+  LDI r14, 1
+  LDI r13, 0
+  ; Setup targetComponent from IN[0]
+  LDI r0, 0
+  IN r0, r0
+  MUL r0, r0, r14
+  ADD r0, r0, r13
+
+  LDI r1, 1000
+  JZ r0, base_ready
+  LDI r1, 5000
+base_ready:
+  DIV r1, r1, r14
+  LOAD r2, r1
+
+  ; Compute targetHash of program at r1 and copy instructions to working buffer at 9004
+  LDI r3, 100003
+  LDI r4, 1000000007
+  LDI r5, 131
+  MUL r3, r3, r5
+  ADD r3, r3, r2
+  MOD r3, r3, r4
+
+  LDI r6, 9000
+  STORE r6, r2
+
+  LDI r7, 0
+  LDI r8, 4
+  ADD r9, r1, r8
+  ADD r10, r6, r8
+
+hash_copy_loop:
+  CMPLT r11, r7, r2
+  JZ r11, hash_copy_done
+
+  LOAD r12, r9
+  STORE r10, r12
+  MOD r12, r12, r4
+  ADD r12, r12, r4
+  MOD r12, r12, r4
+  MUL r3, r3, r5
+  ADD r3, r3, r12
+  LDI r11, 1
+  ADD r3, r3, r11
+  MOD r3, r3, r4
+  ADD r9, r9, r14
+  ADD r10, r10, r14
+
+  LOAD r12, r9
+  STORE r10, r12
+  MOD r12, r12, r4
+  ADD r12, r12, r4
+  MOD r12, r12, r4
+  MUL r3, r3, r5
+  ADD r3, r3, r12
+  LDI r11, 2
+  ADD r3, r3, r11
+  MOD r3, r3, r4
+  ADD r9, r9, r14
+  ADD r10, r10, r14
+
+  LOAD r12, r9
+  STORE r10, r12
+  MOD r12, r12, r4
+  ADD r12, r12, r4
+  MOD r12, r12, r4
+  MUL r3, r3, r5
+  ADD r3, r3, r12
+  LDI r11, 3
+  ADD r3, r3, r11
+  MOD r3, r3, r4
+  ADD r9, r9, r14
+  ADD r10, r10, r14
+
+  LOAD r12, r9
+  STORE r10, r12
+  MOD r12, r12, r4
+  ADD r12, r12, r4
+  MOD r12, r12, r4
+  MUL r3, r3, r5
+  ADD r3, r3, r12
+  LDI r11, 4
+  ADD r3, r3, r11
+  MOD r3, r3, r4
+  ADD r9, r9, r14
+  ADD r10, r10, r14
+
+  ADD r7, r7, r14
+  JMP hash_copy_loop
+
+hash_copy_done:
+  LDI r8, 8990
+  STORE r8, r3
+  LDI r8, 8991
+  STORE r8, r0
+  LDI r8, 8992
+  STORE r8, r2
+
+  ; Build branch target bitmap at 18000..18000+N and register write counts at 13600..13615
+  LDI r7, 0
+  LDI r8, 18000
+init_bt_loop:
+  CMPLT r11, r7, r2
+  JZ r11, init_bt_done
+  ADD r9, r8, r7
+  STORE r9, r13
+  ADD r7, r7, r14
+  JMP init_bt_loop
+init_bt_done:
+
+  LDI r7, 0
+  LDI r8, 16
+init_wc_loop:
+  CMPLT r11, r7, r8
+  JZ r11, init_wc_done
+  LDI r9, 13600
+  ADD r9, r9, r7
+  STORE r9, r13
+  LDI r9, 13700
+  ADD r9, r9, r7
+  STORE r9, r13
+  ADD r7, r7, r14
+  JMP init_wc_loop
+init_wc_done:
+
+  LDI r7, 0
+  LDI r9, 9004
+scan_bt_loop:
+  CMPLT r11, r7, r2
+  JZ r11, scan_bt_done
+  LOAD r10, r9
+  ADD r11, r9, r14
+  LOAD r12, r11
+
+  LDI r11, 2
+  CMPLT r6, r10, r11
+  JNZ r6, check_bt_op
+  LDI r11, 12
+  CMPLE r6, r10, r11
+  JNZ r6, inc_write_count
+  LDI r11, 18
+  CMPEQ r6, r10, r11
+  JNZ r6, inc_write_count
+  LDI r11, 20
+  CMPEQ r6, r10, r11
+  JNZ r6, inc_write_count
+  LDI r11, 21
+  CMPEQ r6, r10, r11
+  JNZ r6, inc_write_count
+  JMP check_bt_op
+
+inc_write_count:
+  LDI r11, 13600
+  ADD r11, r11, r12
+  LOAD r6, r11
+  ADD r6, r6, r14
+  STORE r11, r6
+
+check_bt_op:
+  LDI r11, 13
+  CMPLT r6, r10, r11
+  JNZ r6, scan_bt_next
+  LDI r11, 16
+  CMPLE r6, r10, r11
+  JZ r6, scan_bt_next
+  LDI r11, 3
+  ADD r11, r9, r11
+  LOAD r12, r11
+  CMPLT r11, r12, r13
+  JNZ r11, scan_bt_next
+  CMPLT r11, r12, r2
+  JZ r11, scan_bt_next
+  LDI r8, 18000
+  ADD r11, r8, r12
+  STORE r11, r14
+scan_bt_next:
+  LDI r11, 4
+  ADD r9, r9, r11
+  ADD r7, r7, r14
+  JMP scan_bt_loop
+scan_bt_done:
+
+  ; Scan entry block for single-assignment global constants
+  LDI r7, 0
+  LDI r9, 9004
+scan_entry_loop:
+  CMPLT r11, r7, r2
+  JZ r11, scan_entry_done
+  LDI r11, 18000
+  ADD r11, r11, r7
+  LOAD r11, r11
+  JNZ r11, scan_entry_done
+  LOAD r10, r9
+  CMPEQ r11, r10, r14
+  JNZ r11, scan_entry_done
+  LDI r11, 13
+  CMPLT r6, r10, r11
+  JZ r6, check_entry_ct_upper
+  JMP check_entry_ldi
+check_entry_ct_upper:
+  LDI r11, 17
+  CMPLE r6, r10, r11
+  JNZ r6, scan_entry_done
+
+check_entry_ldi:
+  LDI r11, 2
+  CMPEQ r6, r10, r11
+  JZ r6, scan_entry_next
+  ADD r11, r9, r14
+  LOAD r12, r11
+  ADD r11, r11, r14
+  LOAD r6, r11
+  LDI r11, 13600
+  ADD r11, r11, r12
+  LOAD r11, r11
+  CMPEQ r11, r11, r14
+  JZ r11, scan_entry_next
+  LDI r11, 13700
+  ADD r11, r11, r12
+  STORE r11, r14
+  LDI r11, 13720
+  ADD r11, r11, r12
+  STORE r11, r6
+  LDI r11, 13740
+  ADD r11, r11, r12
+  STORE r11, r7
+
+scan_entry_next:
+  LDI r11, 4
+  ADD r9, r9, r11
+  ADD r7, r7, r14
+  JMP scan_entry_loop
+scan_entry_done:
+
+  CALL clear_const_table
+
+  LDI r15, 0
+  LDI r7, 0
+
+search_loop:
+  CMPLT r11, r7, r2
+  JZ r11, search_done
+
+  LDI r8, 18000
+  ADD r8, r8, r7
+  LOAD r9, r8
+  JZ r9, not_branch_target
+  CALL clear_const_table
+not_branch_target:
+
+  LDI r8, 4
+  MUL r6, r7, r8
+  LDI r8, 9004
+  ADD r6, r6, r8
+
+  LOAD r3, r6
+  ADD r8, r6, r14
+  LOAD r4, r8
+  ADD r8, r8, r14
+  LOAD r5, r8
+  ADD r8, r8, r14
+  LOAD r10, r8
+
+  ; Unsound rule positive control trigger (when IN[1] == 99)
+  LDI r8, 1
+  IN r8, r8
+  LDI r9, 99
+  CMPEQ r8, r8, r9
+  JZ r8, check_normal_rules
+  LDI r8, 4
+  CMPEQ r8, r3, r8
+  JZ r8, check_normal_rules
+  LDI r8, 3
+  STORE r6, r8
+  LDI r8, 3
+  ADD r8, r6, r8
+  STORE r8, r13
+  LDI r8, 99
+  LDI r9, 0
+  LDI r11, 0
+  LDI r12, -1
+  CALL emit_proof_step
+  JMP finish_search_after_one
+
+check_normal_rules:
+  LDI r8, 6
+  CMPEQ r9, r3, r8
+  JNZ r9, handle_mul
+
+  LDI r8, 4
+  CMPEQ r9, r3, r8
+  JNZ r9, handle_add
+
+  LDI r8, 5
+  CMPEQ r9, r3, r8
+  JNZ r9, handle_sub
+
+  LDI r8, 7
+  CMPEQ r9, r3, r8
+  JNZ r9, handle_div
+
+  LDI r8, 9
+  CMPEQ r9, r3, r8
+  JNZ r9, handle_neg
+
+  LDI r8, 18
+  CMPEQ r9, r3, r8
+  JNZ r9, handle_load
+
+  JMP update_tracker
+
+handle_add:
+  LDI r8, 13500
+  ADD r8, r8, r5
+  LOAD r9, r8
+  JZ r9, add_check_zero_r
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, add_check_zero_r
+
+  LDI r8, 13500
+  ADD r8, r8, r10
+  LOAD r9, r8
+  JZ r9, add_check_zero_r
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, add_check_zero_r
+
+  LDI r8, 13520
+  ADD r8, r8, r5
+  LOAD r9, r8
+  LDI r8, 13520
+  ADD r8, r8, r10
+  LOAD r11, r8
+  ADD r9, r9, r11
+  LDI r8, 2
+  STORE r6, r8
+  LDI r8, 2
+  ADD r8, r6, r8
+  STORE r8, r9
+  ADD r8, r8, r14
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r11, r8
+  LDI r8, 10
+  LDI r12, -1
+  CALL emit_proof_step
+  JMP reload_and_track
+
+add_check_zero_r:
+  LDI r8, 13500
+  ADD r8, r8, r10
+  LOAD r9, r8
+  JZ r9, add_check_zero_l
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, add_check_zero_l
+  LDI r8, 13520
+  ADD r8, r8, r10
+  LOAD r9, r8
+  JNZ r9, add_check_zero_l
+  LDI r8, 3
+  STORE r6, r8
+  LDI r8, 3
+  ADD r8, r6, r8
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  LDI r8, 1
+  LDI r11, 0
+  LDI r12, -1
+  CALL emit_proof_step
+  JMP reload_and_track
+
+add_check_zero_l:
+  LDI r8, 13500
+  ADD r8, r8, r5
+  LOAD r9, r8
+  JZ r9, update_tracker
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, update_tracker
+  LDI r8, 13520
+  ADD r8, r8, r5
+  LOAD r9, r8
+  JNZ r9, update_tracker
+  LDI r8, 3
+  STORE r6, r8
+  LDI r8, 2
+  ADD r8, r6, r8
+  STORE r8, r10
+  ADD r8, r8, r14
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  LDI r8, 2
+  LDI r11, 0
+  LDI r12, -1
+  CALL emit_proof_step
+  JMP reload_and_track
+
+handle_sub:
+  CMPEQ r9, r5, r10
+  JZ r9, sub_check_zero
+  LDI r8, 2
+  STORE r6, r8
+  LDI r8, 2
+  ADD r8, r6, r8
+  STORE r8, r13
+  ADD r8, r8, r14
+  STORE r8, r13
+  LDI r8, 4
+  LDI r9, 0
+  LDI r11, 0
+  LDI r12, -1
+  CALL emit_proof_step
+  JMP reload_and_track
+
+sub_check_zero:
+  LDI r8, 13500
+  ADD r8, r8, r10
+  LOAD r9, r8
+  JZ r9, update_tracker
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, update_tracker
+  LDI r8, 13520
+  ADD r8, r8, r10
+  LOAD r9, r8
+  JNZ r9, update_tracker
+  LDI r8, 3
+  STORE r6, r8
+  LDI r8, 3
+  ADD r8, r6, r8
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  LDI r8, 3
+  LDI r11, 0
+  LDI r12, -1
+  CALL emit_proof_step
+  JMP reload_and_track
+
+handle_mul:
+  LDI r8, 13500
+  ADD r8, r8, r5
+  LOAD r9, r8
+  JZ r9, mul_check_rs2
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, mul_check_rs2
+
+  LDI r8, 13500
+  ADD r8, r8, r10
+  LOAD r9, r8
+  JZ r9, mul_check_rs2
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, mul_check_rs2
+
+  LDI r8, 13520
+  ADD r8, r8, r5
+  LOAD r9, r8
+  LDI r8, 13520
+  ADD r8, r8, r10
+  LOAD r11, r8
+  MUL r9, r9, r11
+  LDI r8, 2
+  STORE r6, r8
+  LDI r8, 2
+  ADD r8, r6, r8
+  STORE r8, r9
+  ADD r8, r8, r14
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r11, r8
+  LDI r8, 11
+  LDI r12, -5
+  CALL emit_proof_step
+  JMP reload_and_track
+
+mul_check_rs2:
+  LDI r8, 13500
+  ADD r8, r8, r10
+  LOAD r9, r8
+  JZ r9, mul_check_rs1
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, mul_check_rs1
+  LDI r8, 13520
+  ADD r8, r8, r10
+  LOAD r9, r8
+  CMPEQ r8, r9, r14
+  JNZ r8, apply_mul_one_r
+  JZ r9, apply_mul_zero_r
+  LDI r8, 2
+  CMPEQ r8, r9, r8
+  JNZ r8, apply_mul_two_r
+  JMP mul_check_rs1
+
+apply_mul_one_r:
+  LDI r8, 3
+  STORE r6, r8
+  LDI r8, 3
+  ADD r8, r6, r8
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  LDI r8, 5
+  LDI r11, 0
+  LDI r12, -5
+  CALL emit_proof_step
+  JMP reload_and_track
+
+apply_mul_zero_r:
+  LDI r8, 2
+  STORE r6, r8
+  LDI r8, 2
+  ADD r8, r6, r8
+  STORE r8, r13
+  ADD r8, r8, r14
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  LDI r8, 7
+  LDI r11, 0
+  LDI r12, -5
+  CALL emit_proof_step
+  JMP reload_and_track
+
+apply_mul_two_r:
+  LDI r8, 4
+  STORE r6, r8
+  LDI r8, 3
+  ADD r8, r6, r8
+  STORE r8, r5
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  LDI r8, 8
+  LDI r11, 0
+  LDI r12, -4
+  CALL emit_proof_step
+  JMP reload_and_track
+
+mul_check_rs1:
+  LDI r8, 13500
+  ADD r8, r8, r5
+  LOAD r9, r8
+  JZ r9, update_tracker
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, update_tracker
+  LDI r8, 13520
+  ADD r8, r8, r5
+  LOAD r9, r8
+  CMPEQ r8, r9, r14
+  JZ r8, update_tracker
+  LDI r8, 3
+  STORE r6, r8
+  LDI r8, 2
+  ADD r8, r6, r8
+  STORE r8, r10
+  ADD r8, r8, r14
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  LDI r8, 6
+  LDI r11, 0
+  LDI r12, -5
+  CALL emit_proof_step
+  JMP reload_and_track
+
+handle_div:
+  LDI r8, 13500
+  ADD r8, r8, r10
+  LOAD r9, r8
+  JZ r9, update_tracker
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, update_tracker
+  LDI r8, 13520
+  ADD r8, r8, r10
+  LOAD r9, r8
+  CMPEQ r8, r9, r14
+  JZ r8, update_tracker
+  LDI r8, 3
+  STORE r6, r8
+  LDI r8, 3
+  ADD r8, r6, r8
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r10
+  LOAD r9, r8
+  LDI r8, 9
+  LDI r11, 0
+  LDI r12, -7
+  CALL emit_proof_step
+  JMP reload_and_track
+
+handle_neg:
+  LDI r8, 13500
+  ADD r8, r8, r5
+  LOAD r9, r8
+  JZ r9, update_tracker
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  CMPLT r8, r9, r7
+  JZ r8, update_tracker
+  LDI r8, 13520
+  ADD r8, r8, r5
+  LOAD r9, r8
+  NEG r9, r9
+  LDI r8, 2
+  STORE r6, r8
+  LDI r8, 2
+  ADD r8, r6, r8
+  STORE r8, r9
+  ADD r8, r8, r14
+  STORE r8, r13
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r9, r8
+  LDI r8, 12
+  LDI r11, 0
+  LDI r12, -1
+  CALL emit_proof_step
+  JMP reload_and_track
+
+handle_load:
+  JZ r7, check_dead_load
+  LDI r8, 18000
+  ADD r8, r8, r7
+  LOAD r9, r8
+  JNZ r9, check_dead_load
+  LDI r8, 4
+  SUB r9, r6, r8
+  LOAD r11, r9
+  LDI r8, 19
+  CMPEQ r11, r11, r8
+  JZ r11, check_dead_load
+  LDI r8, 2
+  ADD r11, r9, r8
+  LOAD r11, r11
+  CMPEQ r11, r11, r5
+  JZ r11, check_dead_load
+  LDI r8, 13500
+  ADD r8, r8, r5
+  LOAD r11, r8
+  JZ r11, check_dead_load
+  LDI r8, 13540
+  ADD r8, r8, r5
+  LOAD r11, r8
+  SUB r8, r7, r14
+  CMPLT r8, r11, r8
+  JZ r8, check_dead_load
+  LDI r8, 13520
+  ADD r8, r8, r5
+  LOAD r8, r8
+  CMPLT r12, r8, r13
+  JNZ r12, check_dead_load
+  LDI r12, 65536
+  CMPLT r12, r8, r12
+  JZ r12, check_dead_load
+  LDI r8, 3
+  ADD r9, r9, r8
+  LOAD r9, r9
+  STORE r6, r8
+  LDI r8, 2
+  ADD r8, r6, r8
+  STORE r8, r9
+  ADD r8, r8, r14
+  STORE r8, r13
+  SUB r9, r7, r14
+  LDI r8, 13
+  LDI r12, -3
+  CALL emit_proof_step
+  JMP reload_and_track
+
+check_dead_load:
+  ADD r9, r7, r14
+  CMPLT r11, r9, r2
+  JZ r11, update_tracker
+  LDI r8, 4
+  ADD r11, r6, r8
+  LOAD r12, r11
+  LDI r8, 2
+  CMPEQ r12, r12, r8
+  JZ r12, update_tracker
+  ADD r11, r11, r14
+  LOAD r12, r11
+  CMPEQ r12, r12, r4
+  JZ r12, update_tracker
+  STORE r6, r13
+  ADD r8, r6, r14
+  STORE r8, r13
+  ADD r8, r8, r14
+  STORE r8, r13
+  ADD r8, r8, r14
+  STORE r8, r13
+  LDI r8, 14
+  LDI r11, 0
+  LDI r12, -3
+  CALL emit_proof_step
+  JMP reload_and_track
+
+reload_and_track:
+  LOAD r3, r6
+  ADD r8, r6, r14
+  LOAD r4, r8
+  ADD r8, r8, r14
+  LOAD r5, r8
+  ADD r8, r8, r14
+  LOAD r10, r8
+
+update_tracker:
+  CMPEQ r8, r3, r14
+  JNZ r8, tracker_clear_all
+  LDI r8, 13
+  CMPLT r9, r3, r8
+  JNZ r9, tracker_check_ldi
+  LDI r8, 17
+  CMPLE r9, r3, r8
+  JNZ r9, tracker_clear_all
+  JMP tracker_check_writes
+
+tracker_clear_all:
+  CALL clear_const_table
+  JMP next_pc
+
+tracker_check_ldi:
+  LDI r8, 2
+  CMPEQ r9, r3, r8
+  JZ r9, tracker_check_writes
+  LDI r8, 13500
+  ADD r8, r8, r4
+  STORE r8, r14
+  LDI r8, 13520
+  ADD r8, r8, r4
+  STORE r8, r5
+  LDI r8, 13540
+  ADD r8, r8, r4
+  STORE r8, r7
+  JMP next_pc
+
+tracker_check_writes:
+  LDI r8, 0
+  CMPEQ r9, r3, r8
+  JNZ r9, next_pc
+  LDI r8, 19
+  CMPEQ r9, r3, r8
+  JNZ r9, next_pc
+  LDI r8, 22
+  CMPEQ r9, r3, r8
+  JNZ r9, next_pc
+  LDI r8, 13700
+  ADD r8, r8, r4
+  LOAD r9, r8
+  JNZ r9, next_pc
+  LDI r8, 13500
+  ADD r8, r8, r4
+  STORE r8, r13
+
+next_pc:
+  ADD r7, r7, r14
+  JMP search_loop
+
+finish_search_after_one:
+search_done:
+  JZ r15, halt_now
+
+  LDI r8, 1196241153
+  OUT r8
+  LDI r8, 8991
+  LOAD r9, r8
+  OUT r9
+  LDI r8, 8990
+  LOAD r9, r8
+  OUT r9
+  OUT r2
+
+  LDI r8, 4
+  MUL r9, r2, r8
+  LDI r7, 0
+  LDI r10, 9004
+emit_prog_loop:
+  CMPLT r11, r7, r9
+  JZ r11, emit_prog_done
+  LOAD r12, r10
+  OUT r12
+  ADD r10, r10, r14
+  ADD r7, r7, r14
+  JMP emit_prog_loop
+emit_prog_done:
+
+  OUT r15
+  LDI r8, 5
+  MUL r9, r15, r8
+  LDI r7, 0
+  LDI r10, 14004
+emit_steps_loop:
+  CMPLT r11, r7, r9
+  JZ r11, halt_now
+  LOAD r12, r10
+  OUT r12
+  ADD r10, r10, r14
+  ADD r7, r7, r14
+  JMP emit_steps_loop
+
+halt_now:
+  HALT
+
+clear_const_table:
+  LDI r8, 0
+  LDI r9, 16
+clear_ct_loop:
+  CMPLT r12, r8, r9
+  JZ r12, clear_ct_done
+  LDI r11, 13700
+  ADD r11, r11, r8
+  LOAD r12, r11
+  LDI r11, 13500
+  ADD r11, r11, r8
+  STORE r11, r12
+
+  LDI r11, 13720
+  ADD r11, r11, r8
+  LOAD r12, r11
+  LDI r11, 13520
+  ADD r11, r11, r8
+  STORE r11, r12
+
+  LDI r11, 13740
+  ADD r11, r11, r8
+  LOAD r12, r11
+  LDI r11, 13540
+  ADD r11, r11, r8
+  STORE r11, r12
+
+  ADD r8, r8, r14
+  JMP clear_ct_loop
+clear_ct_done:
+  RET
+
+emit_proof_step:
+  LDI r0, 8995
+  STORE r0, r6
+  LDI r0, 5
+  MUL r0, r15, r0
+  LDI r6, 14004
+  ADD r0, r0, r6
+  STORE r0, r8
+  ADD r0, r0, r14
+  STORE r0, r7
+  ADD r0, r0, r14
+  STORE r0, r9
+  ADD r0, r0, r14
+  STORE r0, r11
+  ADD r0, r0, r14
+  STORE r0, r12
+  ADD r15, r15, r14
+  LDI r0, 8995
+  LOAD r6, r0
+  RET`;
+
+  const DEFAULT_WORKLOAD = [
+    [1n, 2n, 3n, 4n],
+    [10n, -5n, 0n, 7n, 12n],
+    [42n, 100n, -100n],
+    [0n, 1n, -1n, 2n, -2n, 3n]
+  ];
+
+  function createDefaultExam() {
+    return [
+      {
+        name: 'exam_job_solver_seed',
+        targetComponent: 0,
+        prog: assemble(SEED_SOLVER_ASM),
+        budget: 200000n
+      },
+      {
+        name: 'exam_job_solver_dot',
+        targetComponent: 0,
+        prog: assemble(PRESET_SOLVERS.dot),
+        budget: 200000n
+      }
+    ];
+  }
+
+  // =========================================================================
+  // 6. MACHINE LOOP & STATE MANAGEMENT
+  // =========================================================================
+
+  class Machine {
+    constructor(options = {}) {
+      this.options = {
+        unsoundRule: Boolean(options.unsoundRule),
+        switchCost: options.switchCost !== undefined ? BigInt(options.switchCost) : SWITCH_COST,
+        defaultEpochBudget: options.defaultEpochBudget !== undefined ? BigInt(options.defaultEpochBudget) : 650000n
+      };
+      this.solverProg = options.solverProg ? assemble(options.solverProg) : assemble(SEED_SOLVER_ASM);
+      this.searcherProg = options.searcherProg ? assemble(options.searcherProg) : assemble(SEED_SEARCHER_ASM);
+      this.workload = options.workload
+        ? options.workload.map(vec => vec.map(BigInt))
+        : DEFAULT_WORKLOAD.map(vec => vec.map(BigInt));
+      this.exam = options.exam
+        ? options.exam.map(j => ({
+            name: j.name || 'job',
+            targetComponent: Number(j.targetComponent || 0),
+            prog: assemble(j.prog || j.programAsm || SEED_SOLVER_ASM),
+            budget: BigInt(j.budget || 200000n)
+          }))
+        : createDefaultExam();
+
+      this.epoch = 0;
+      this.lineageLog = [];
+      this.epochLog = [];
+      this.lastProposal = null;
+      this.lastVerdict = null;
+      this.costHistory = {
+        solver: [this.getSolverCost()],
+        searcher: [this.getSearcherCost()]
+      };
+    }
+
+    get switchCost() {
+      return this.options.switchCost;
+    }
+
+    getSolverHash() {
+      return computeProgramHash(this.solverProg);
+    }
+
+    getSearcherHash() {
+      return computeProgramHash(this.searcherProg);
+    }
+
+    getSolverCost() {
+      const m = measureSolverWorkloadCost(this.solverProg, this.workload);
+      return m.totalSteps;
+    }
+
+    getSearcherCost() {
+      const m = measureSearcherExamCost(this.searcherProg, this.exam, this.solverProg);
+      return m.totalSteps;
+    }
+
+    setSolver(srcOrProg) {
+      this.solverProg = assemble(srcOrProg);
+      this.costHistory.solver.push(this.getSolverCost());
+    }
+
+    setSearcher(srcOrProg) {
+      this.searcherProg = assemble(srcOrProg);
+      this.costHistory.searcher.push(this.getSearcherCost());
+    }
+
+    setWorkload(newWorkload) {
+      this.workload = newWorkload.map(vec => vec.map(BigInt));
+      this.costHistory.solver.push(this.getSolverCost());
+    }
+
+    setExam(newExam) {
+      this.exam = newExam.map((j, idx) => ({
+        name: j.name || `exam_job_${idx}`,
+        targetComponent: Number(j.targetComponent || 0),
+        prog: assemble(j.prog || j.programAsm || this.solverProg),
+        budget: BigInt(j.budget || 200000n)
+      }));
+      this.costHistory.searcher.push(this.getSearcherCost());
+    }
+
+    runEpoch(epochOpts = {}) {
+      const targetComponent = epochOpts.targetComponent !== undefined
+        ? Number(epochOpts.targetComponent)
+        : (this.epoch % 2);
+      const budget = epochOpts.budget !== undefined
+        ? BigInt(epochOpts.budget)
+        : this.options.defaultEpochBudget;
+
+      this.epoch += 1;
+      const mem = buildInitialMemory(this.solverProg, this.searcherProg);
+      const unsoundFlag = this.options.unsoundRule ? 99n : 0n;
+      const extraInputs = epochOpts.searcherInputs
+        ? epochOpts.searcherInputs.map(BigInt)
+        : [BigInt(targetComponent), unsoundFlag];
+
+      const vmRes = runVM(this.searcherProg, extraInputs, budget, mem);
+      const rawOutputs = vmRes.outputs;
+
+      const checkRes = checkCertificate(rawOutputs, this, {
+        unsoundRule: this.options.unsoundRule,
+        expectedTargetComponent: targetComponent
+      });
+
+      this.lastProposal = {
+        epoch: this.epoch,
+        targetComponent,
+        searcherSteps: vmRes.steps,
+        searcherStatus: vmRes.status,
+        rawWords: rawOutputs,
+        cert: checkRes.cert
+      };
+      this.lastVerdict = checkRes;
+
+      if (checkRes.accepted) {
+        if (targetComponent === 0) {
+          this.solverProg = cloneProg(checkRes.cert.replacementProg);
+        } else {
+          this.searcherProg = cloneProg(checkRes.cert.replacementProg);
+        }
+        const entry = {
+          index: this.lineageLog.length + 1,
+          epoch: this.epoch,
+          targetComponent,
+          isSelfRewrite: targetComponent === 1,
+          oldHash: checkRes.oldHash,
+          newHash: checkRes.newHash,
+          costBefore: checkRes.costBefore,
+          costAfter: checkRes.costAfter,
+          switchCost: checkRes.switchCost,
+          netSavings: checkRes.measuredDrop - checkRes.switchCost,
+          certificate: checkRes.cert
+        };
+        this.lineageLog.push(entry);
+      }
+
+      const solverCostNow = this.getSolverCost();
+      const searcherCostNow = this.getSearcherCost();
+      this.costHistory.solver.push(solverCostNow);
+      this.costHistory.searcher.push(searcherCostNow);
+
+      const epochRecord = {
+        epoch: this.epoch,
+        targetComponent,
+        searcherSteps: vmRes.steps,
+        searcherStatus: vmRes.status,
+        accepted: checkRes.accepted,
+        code: checkRes.code,
+        reason: checkRes.reason,
+        costBefore: checkRes.costBefore !== undefined ? checkRes.costBefore : null,
+        costAfter: checkRes.costAfter !== undefined ? checkRes.costAfter : null,
+        solverCost: solverCostNow,
+        searcherCost: searcherCostNow
+      };
+      this.epochLog.push(epochRecord);
+
+      return epochRecord;
+    }
+
+    exportState() {
+      const serializeProg = (p) => p.map(inst => inst.map(w => w.toString()));
+      const serializeCert = (c) => {
+        if (!c) return null;
+        return {
+          magic: c.magic.toString(),
+          targetComponent: c.targetComponent,
+          targetHash: c.targetHash.toString(),
+          replacementLength: c.replacementLength,
+          replacementProg: serializeProg(c.replacementProg),
+          stepCount: c.stepCount,
+          steps: c.steps.map(s => ({
+            ruleId: s.ruleId,
+            loc: s.loc,
+            w1: s.w1,
+            w2: s.w2,
+            costDelta: s.costDelta.toString()
+          }))
+        };
+      };
+
+      return JSON.stringify({
+        version: 'GM1-STATE-1',
+        options: {
+          unsoundRule: this.options.unsoundRule,
+          switchCost: this.options.switchCost.toString(),
+          defaultEpochBudget: this.options.defaultEpochBudget.toString()
+        },
+        epoch: this.epoch,
+        solverProg: serializeProg(this.solverProg),
+        searcherProg: serializeProg(this.searcherProg),
+        workload: this.workload.map(vec => vec.map(x => x.toString())),
+        exam: this.exam.map(j => ({
+          name: j.name,
+          targetComponent: j.targetComponent,
+          prog: serializeProg(j.prog),
+          budget: j.budget.toString()
+        })),
+        lineageLog: this.lineageLog.map(e => ({
+          index: e.index,
+          epoch: e.epoch,
+          targetComponent: e.targetComponent,
+          isSelfRewrite: e.isSelfRewrite,
+          oldHash: e.oldHash.toString(),
+          newHash: e.newHash.toString(),
+          costBefore: e.costBefore.toString(),
+          costAfter: e.costAfter.toString(),
+          switchCost: e.switchCost.toString(),
+          netSavings: e.netSavings.toString(),
+          certificate: serializeCert(e.certificate)
+        })),
+        epochLog: this.epochLog.map(e => ({
+          epoch: e.epoch,
+          targetComponent: e.targetComponent,
+          searcherSteps: e.searcherSteps.toString(),
+          searcherStatus: e.searcherStatus,
+          accepted: e.accepted,
+          code: e.code,
+          reason: e.reason,
+          costBefore: e.costBefore !== null ? e.costBefore.toString() : null,
+          costAfter: e.costAfter !== null ? e.costAfter.toString() : null,
+          solverCost: e.solverCost.toString(),
+          searcherCost: e.searcherCost.toString()
+        })),
+        costHistory: {
+          solver: this.costHistory.solver.map(x => x.toString()),
+          searcher: this.costHistory.searcher.map(x => x.toString())
+        }
+      }, null, 2);
+    }
+
+    importState(jsonStr) {
+      const data = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+      if (!data || data.version !== 'GM1-STATE-1') {
+        throw new Error('Invalid GM-1 state format version');
+      }
+      const parseProg = (arr) => arr.map(inst => [BigInt(inst[0]), BigInt(inst[1]), BigInt(inst[2]), BigInt(inst[3])]);
+      const parseCertObj = (c) => {
+        if (!c) return null;
+        return {
+          magic: BigInt(c.magic),
+          targetComponent: Number(c.targetComponent),
+          targetHash: BigInt(c.targetHash),
+          replacementLength: Number(c.replacementLength),
+          replacementProg: parseProg(c.replacementProg),
+          stepCount: Number(c.stepCount),
+          steps: c.steps.map(s => ({
+            ruleId: Number(s.ruleId),
+            loc: Number(s.loc),
+            w1: Number(s.w1),
+            w2: Number(s.w2),
+            costDelta: BigInt(s.costDelta)
+          }))
+        };
+      };
+
+      this.options = {
+        unsoundRule: Boolean(data.options.unsoundRule),
+        switchCost: BigInt(data.options.switchCost),
+        defaultEpochBudget: BigInt(data.options.defaultEpochBudget)
+      };
+      this.epoch = Number(data.epoch);
+      this.solverProg = parseProg(data.solverProg);
+      this.searcherProg = parseProg(data.searcherProg);
+      this.workload = data.workload.map(vec => vec.map(BigInt));
+      this.exam = data.exam.map(j => ({
+        name: j.name,
+        targetComponent: Number(j.targetComponent),
+        prog: parseProg(j.prog),
+        budget: BigInt(j.budget)
+      }));
+      this.lineageLog = data.lineageLog.map(e => ({
+        index: Number(e.index),
+        epoch: Number(e.epoch),
+        targetComponent: Number(e.targetComponent),
+        isSelfRewrite: Boolean(e.isSelfRewrite),
+        oldHash: BigInt(e.oldHash),
+        newHash: BigInt(e.newHash),
+        costBefore: BigInt(e.costBefore),
+        costAfter: BigInt(e.costAfter),
+        switchCost: BigInt(e.switchCost),
+        netSavings: BigInt(e.netSavings),
+        certificate: parseCertObj(e.certificate)
+      }));
+      this.epochLog = data.epochLog.map(e => ({
+        epoch: Number(e.epoch),
+        targetComponent: Number(e.targetComponent),
+        searcherSteps: BigInt(e.searcherSteps),
+        searcherStatus: e.searcherStatus,
+        accepted: Boolean(e.accepted),
+        code: e.code,
+        reason: e.reason,
+        costBefore: e.costBefore !== null ? BigInt(e.costBefore) : null,
+        costAfter: e.costAfter !== null ? BigInt(e.costAfter) : null,
+        solverCost: BigInt(e.solverCost),
+        searcherCost: BigInt(e.searcherCost)
+      }));
+      this.costHistory = {
+        solver: data.costHistory.solver.map(BigInt),
+        searcher: data.costHistory.searcher.map(BigInt)
+      };
+      return this;
+    }
+  }
+
+  // =========================================================================
+  // 7. SINGLE-PAGE UI CONTROLLER (BROWSER ONLY)
+  // =========================================================================
+
+  function renderSvgCurve(container, values, strokeColor) {
+    if (!container) return;
+    const nums = values.map(v => Number(v));
+    if (nums.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    const w = 440, h = 145, padL = 48, padR = 16, padT = 14, padB = 24;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+    const minV = Math.min(...nums);
+    const maxV = Math.max(...nums);
+    const span = maxV === minV ? Math.max(1, maxV * 0.1) : (maxV - minV);
+    const low = Math.max(0, minV - span * 0.15);
+    const high = maxV + span * 0.15;
+
+    const pts = nums.map((val, i) => {
+      const x = padL + (nums.length === 1 ? plotW / 2 : (i / (nums.length - 1)) * plotW);
+      const y = padT + plotH - ((val - low) / (high - low || 1)) * plotH;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    const circles = nums.map((val, i) => {
+      const x = padL + (nums.length === 1 ? plotW / 2 : (i / (nums.length - 1)) * plotW);
+      const y = padT + plotH - ((val - low) / (high - low || 1)) * plotH;
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="${strokeColor}"><title>Step ${i}: ${val} steps</title></circle>`;
+    }).join('');
+
+    container.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="#2a3548" stroke-width="1"/>
+      <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="#2a3548" stroke-width="1"/>
+      <text x="${padL - 5}" y="${padT + 8}" fill="#8b9bb4" font-size="10" font-family="monospace" text-anchor="end">${Math.round(high)}</text>
+      <text x="${padL - 5}" y="${padT + plotH}" fill="#8b9bb4" font-size="10" font-family="monospace" text-anchor="end">${Math.round(low)}</text>
+      <text x="${padL}" y="${h - 5}" fill="#8b9bb4" font-size="10" font-family="monospace">E0</text>
+      <text x="${padL + plotW}" y="${h - 5}" fill="#8b9bb4" font-size="10" font-family="monospace" text-anchor="end">E${nums.length - 1}</text>
+      ${nums.length > 1 ? `<polyline fill="none" stroke="${strokeColor}" stroke-width="2" points="${pts.join(' ')}"/>` : ''}
+      ${circles}
+    </svg>`;
+  }
+
+  function initBrowserUI() {
+    if (typeof document === 'undefined') return;
+    let machine = new Machine();
+
+    const el = (id) => document.getElementById(id);
+    const ruleMap = getRuleMap({ unsoundRule: true });
+
+    function populateEditorsFromMachine() {
+      el('ui-input-solver').value = SEED_SOLVER_ASM;
+      el('ui-input-workload').value = JSON.stringify(
+        machine.workload.map(v => v.map(x => Number(x)))
+      );
+      el('ui-input-exam').value = JSON.stringify(
+        machine.exam.map(j => ({
+          name: j.name,
+          targetComponent: j.targetComponent,
+          budget: Number(j.budget)
+        }))
+      );
+    }
+
+    function updateUI() {
+      const sHash = machine.getSolverHash();
+      const srHash = machine.getSearcherHash();
+      const sCost = machine.getSolverCost();
+      const srCost = machine.getSearcherCost();
+
+      el('stat-epoch').textContent = String(machine.epoch);
+      el('stat-solver-hash').textContent = `${sHash} (${machine.solverProg.length} inst)`;
+      el('stat-solver-cost').textContent = `${sCost} steps`;
+      el('stat-searcher-hash').textContent = `${srHash} (${machine.searcherProg.length} inst)`;
+      el('stat-searcher-cost').textContent = `${srCost} steps`;
+
+      const accCount = machine.epochLog.filter(e => e.accepted).length;
+      const rejCount = machine.epochLog.length - accCount;
+      el('stat-verdicts').textContent = `${accCount} / ${rejCount}`;
+
+      el('meta-solver-info').textContent = `hash=${sHash} | len=${machine.solverProg.length}`;
+      el('ui-solver-disasm').textContent = disassemble(machine.solverProg);
+
+      el('meta-searcher-info').textContent = `hash=${srHash} | len=${machine.searcherProg.length}`;
+      el('ui-searcher-disasm').textContent = disassemble(machine.searcherProg);
+
+      // Proposal & Certificate view
+      if (machine.lastProposal) {
+        const lp = machine.lastProposal;
+        const compLabel = lp.targetComponent === 0 ? 'Solver (0)' : 'Searcher Self (1)';
+        el('meta-proposal-info').textContent = `Epoch ${lp.epoch} | Target: ${compLabel} | Searcher ran ${lp.searcherSteps} steps (${lp.searcherStatus})`;
+        if (lp.cert) {
+          el('ui-cert-step-count').textContent = `${lp.cert.steps.length} proof step(s)`;
+          el('ui-cert-steps').textContent = lp.cert.steps.map((st, idx) => {
+            const r = ruleMap.get(st.ruleId);
+            const rName = r ? r.name : `RULE_${st.ruleId}`;
+            return `[Step ${idx}] loc=${st.loc} rule=${rName} (#${st.ruleId}) w1=${st.w1} w2=${st.w2} costDelta=${st.costDelta}`;
+          }).join('\n');
+          el('ui-cert-repl-hash').textContent = `newHash=${computeProgramHash(lp.cert.replacementProg)}`;
+          el('ui-cert-disasm').textContent = disassemble(lp.cert.replacementProg);
+        } else {
+          el('ui-cert-step-count').textContent = '0 steps';
+          el('ui-cert-steps').textContent = lp.rawWords.length === 0
+            ? '; Searcher emitted 0 certificate words (no rewrite found).'
+            : `; Malformed/truncated certificate (${lp.rawWords.length} raw words).`;
+          el('ui-cert-repl-hash').textContent = '';
+          el('ui-cert-disasm').textContent = '; No valid replacement program.';
+        }
+      }
+
+      // Verdict summary
+      if (machine.lastVerdict) {
+        const lv = machine.lastVerdict;
+        el('meta-verdict-badge').innerHTML = lv.accepted
+          ? '<span class="badge ok">ACCEPTED</span>'
+          : `<span class="badge err">REJECTED (${lv.code})</span>`;
+        el('ui-verdict-summary').textContent = lv.reason;
+      }
+
+      // Verdict table
+      const vBody = el('ui-verdict-log-body');
+      vBody.innerHTML = machine.epochLog.slice().reverse().map(e => {
+        const tBadge = e.targetComponent === 1
+          ? '<span class="badge self">SEARCHER (1)</span>'
+          : '<span class="badge solver">SOLVER (0)</span>';
+        const vBadge = e.accepted
+          ? '<span class="badge ok">ACCEPTED</span>'
+          : `<span class="badge err">${e.code}</span>`;
+        const costStr = e.costBefore !== null ? `${e.costBefore} &rarr; ${e.costAfter}` : '-';
+        return `<tr>
+          <td>${e.epoch}</td>
+          <td>${tBadge}</td>
+          <td>${vBadge}</td>
+          <td>${costStr}</td>
+          <td>${e.reason}</td>
+        </tr>`;
+      }).join('');
+
+      // Accepted Lineage table
+      el('meta-lineage-count').textContent = `${machine.lineageLog.length} accepted rewrite(s)`;
+      const lBody = el('ui-lineage-body');
+      lBody.innerHTML = machine.lineageLog.map(item => {
+        const cBadge = item.isSelfRewrite
+          ? '<span class="badge self">SEARCHER SELF-REWRITE</span>'
+          : '<span class="badge solver">SOLVER REWRITE</span>';
+        return `<tr>
+          <td>#${item.index}</td>
+          <td>E${item.epoch}</td>
+          <td>${cBadge}</td>
+          <td>${item.oldHash} &rarr; ${item.newHash}</td>
+          <td>${item.costBefore} &rarr; ${item.costAfter} (&Delta;=-${item.costBefore - item.costAfter})</td>
+          <td>${item.switchCost}</td>
+          <td>${item.certificate.steps.length} step(s)</td>
+        </tr>`;
+      }).join('');
+
+      // Cost curves
+      el('ui-curve-solver-latest').textContent = `Current: ${sCost} steps`;
+      el('ui-curve-searcher-latest').textContent = `Current: ${srCost} steps`;
+      renderSvgCurve(el('ui-chart-solver'), machine.costHistory.solver, '#4da3ff');
+      renderSvgCurve(el('ui-chart-searcher'), machine.costHistory.searcher, '#c084fc');
+    }
+
+    function getSelectedTarget() {
+      const val = el('ui-target-select').value;
+      if (val === '0') return 0;
+      if (val === '1') return 1;
+      return undefined;
+    }
+
+    el('btn-run-epoch').addEventListener('click', () => {
+      const budget = BigInt(el('ui-budget-input').value || 650000);
+      machine.runEpoch({ targetComponent: getSelectedTarget(), budget });
+      updateUI();
+    });
+
+    el('btn-run-5').addEventListener('click', () => {
+      const budget = BigInt(el('ui-budget-input').value || 650000);
+      for (let i = 0; i < 5; i++) {
+        machine.runEpoch({ targetComponent: getSelectedTarget(), budget });
+      }
+      updateUI();
+    });
+
+    el('btn-inject-forgery').addEventListener('click', () => {
+      // Feed a deliberately forged certificate into the checker and log the rejection in UI
+      const forgedWords = [
+        CERT_MAGIC,
+        0n,
+        machine.getSolverHash(),
+        BigInt(machine.solverProg.length),
+        ...machine.solverProg.flatMap(inst => inst),
+        1n,
+        1n, 0n, 0n, 0n, -1n // Rule 1 at loc 0 (which is INLEN, not ADD -> wrong_location)
+      ];
+      const checkRes = checkCertificate(forgedWords, machine, { expectedTargetComponent: 0 });
+      machine.epoch += 1;
+      machine.lastProposal = {
+        epoch: machine.epoch,
+        targetComponent: 0,
+        searcherSteps: 0n,
+        searcherStatus: 'manual_forgery_probe',
+        rawWords: forgedWords,
+        cert: checkRes.cert
+      };
+      machine.lastVerdict = checkRes;
+      machine.epochLog.push({
+        epoch: machine.epoch,
+        targetComponent: 0,
+        searcherSteps: 0n,
+        searcherStatus: 'manual_forgery_probe',
+        accepted: checkRes.accepted,
+        code: checkRes.code,
+        reason: checkRes.reason,
+        costBefore: null,
+        costAfter: null,
+        solverCost: machine.getSolverCost(),
+        searcherCost: machine.getSearcherCost()
+      });
+      updateUI();
+    });
+
+    el('btn-reset-machine').addEventListener('click', () => {
+      machine = new Machine();
+      populateEditorsFromMachine();
+      el('ui-config-status').textContent = 'Reset to seed state';
+      updateUI();
+    });
+
+    el('ui-preset-solver').addEventListener('change', (ev) => {
+      const key = ev.target.value;
+      if (PRESET_SOLVERS[key]) {
+        el('ui-input-solver').value = PRESET_SOLVERS[key];
+      }
+    });
+
+    el('btn-load-solver').addEventListener('click', () => {
+      try {
+        machine.setSolver(el('ui-input-solver').value);
+        el('ui-config-status').textContent = 'Solver replaced and assembled';
+        updateUI();
+      } catch (err) {
+        el('ui-config-status').textContent = 'Solver error: ' + err.message;
+      }
+    });
+
+    el('btn-load-workload').addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(el('ui-input-workload').value);
+        if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Workload must be a non-empty array of input arrays');
+        machine.setWorkload(parsed);
+        el('ui-config-status').textContent = `Workload updated (${parsed.length} input vectors)`;
+        updateUI();
+      } catch (err) {
+        el('ui-config-status').textContent = 'Workload error: ' + err.message;
+      }
+    });
+
+    el('btn-load-exam').addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(el('ui-input-exam').value);
+        if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Exam must be a non-empty array of job objects');
+        machine.setExam(parsed);
+        el('ui-config-status').textContent = `Exam updated (${parsed.length} jobs)`;
+        updateUI();
+      } catch (err) {
+        el('ui-config-status').textContent = 'Exam error: ' + err.message;
+      }
+    });
+
+    el('btn-export-state').addEventListener('click', () => {
+      el('ui-state-json').value = machine.exportState();
+      el('ui-config-status').textContent = 'Exported full machine state JSON';
+    });
+
+    el('btn-import-state').addEventListener('click', () => {
+      try {
+        machine.importState(el('ui-state-json').value);
+        el('ui-config-status').textContent = `Imported state at epoch ${machine.epoch}`;
+        updateUI();
+      } catch (err) {
+        el('ui-config-status').textContent = 'Import error: ' + err.message;
+      }
+    });
+
+    populateEditorsFromMachine();
+    updateUI();
+  }
+
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', initBrowserUI);
+  }
+
+  // =========================================================================
+  // 8. EXPORT `GM1` FOR HEADLESS NODE CLI AND BROWSER ACCESS
+  // =========================================================================
+
+  const GM1 = {
+    OPCODE_DEFS,
+    OP_BY_NAME,
+    OP_BY_ID,
+    MEMORY_SIZE,
+    SOLVER_MEM_BASE,
+    SEARCHER_MEM_BASE,
+    CERT_MAGIC,
+    SWITCH_COST,
+    HASH_SEED,
+    HASH_MULT,
+    HASH_MOD,
+    RULES,
+    UNSOUND_RULE,
+    SEED_SOLVER_ASM,
+    PRESET_SOLVERS,
+    SEED_SEARCHER_ASM,
+    DEFAULT_WORKLOAD,
+    createDefaultExam,
+    computeProgramHash,
+    cloneProg,
+    programsEqual,
+    assemble,
+    disassemble,
+    disassembleInstruction,
+    buildInitialMemory,
+    runVM,
+    verifyConstantAt,
+    applyAndCheckStep,
+    parseCertificate,
+    serializeCertificate,
+    measureSolverWorkloadCost,
+    measureSearcherExamCost,
+    checkCertificate,
+    Machine
+  };
+
+  root.GM1 = GM1;
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = GM1;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+</body>
+</html>

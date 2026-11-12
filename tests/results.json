@@ -1,0 +1,596 @@
+{
+  "timestamp": "2026-11-12T07:02:20.437Z",
+  "tests": [
+    {
+      "id": 1,
+      "name": "Checker rejects forgeries (240/240 rejected with exact expected reason)",
+      "passed": true,
+      "details": {
+        "totalForgeries": 240,
+        "rejectedCount": 240,
+        "rightReasonCount": 240,
+        "byCategory": {
+          "wrong_rule": {
+            "total": 30,
+            "rejected": 30,
+            "matchedReason": 30
+          },
+          "wrong_location": {
+            "total": 35,
+            "rejected": 35,
+            "matchedReason": 35
+          },
+          "side_condition_violated": {
+            "total": 40,
+            "rejected": 40,
+            "matchedReason": 40
+          },
+          "false_cost_claim": {
+            "total": 30,
+            "rejected": 30,
+            "matchedReason": 30
+          },
+          "replacement_mismatch": {
+            "total": 30,
+            "rejected": 30,
+            "matchedReason": 30
+          },
+          "stale_target_hash": {
+            "total": 25,
+            "rejected": 25,
+            "matchedReason": 25
+          },
+          "truncated_proof": {
+            "total": 25,
+            "rejected": 25,
+            "matchedReason": 25
+          },
+          "wrong_component": {
+            "total": 25,
+            "rejected": 25,
+            "matchedReason": 25
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Soundness by differential testing (14 rules x 10,000 random inputs = 140,000 runs, 0 mismatches, 0 cost violations)",
+      "passed": true,
+      "details": {
+        "rulesTested": 14,
+        "totalRuns": 140000
+      }
+    },
+    {
+      "id": 3,
+      "name": "Unsound-rule positive control (accepted with unsoundRule:true, breaks output, caught by Test 2, rejected when off)",
+      "passed": true,
+      "details": {
+        "acceptedWhenUnsoundTrue": true,
+        "behaviorBroken": true,
+        "diffTestMismatchesOnRule99": 1000,
+        "caughtByTest2": true,
+        "rejectedWhenUnsoundFalse": true,
+        "rejectionCodeWhenOff": "wrong_rule"
+      }
+    },
+    {
+      "id": 4,
+      "name": "Search really runs on the VM (perturbing searcher changes proposals; silent searcher accepts 0 rewrites)",
+      "passed": true,
+      "details": {
+        "baseStepCount": 6,
+        "perturbedStepCount": 3,
+        "proposalsChanged": true,
+        "silentSearcherAcceptedCount": 0
+      }
+    },
+    {
+      "id": 5,
+      "name": "End-to-end epochs across Seed Solver and 3 additional solvers",
+      "passed": true,
+      "details": {
+        "solversTested": [
+          "Seed Solver (Polynomial & Affine Checksum): 732 -> 426 steps (2 accepted, 2 rejected)",
+          "Solver A: Plain Bubble Sort (3-element window pass): 358 -> 358 steps (1 accepted, 3 rejected)",
+          "Solver B: Plain Fibonacci Sequence Generator: 790 -> 790 steps (1 accepted, 3 rejected)",
+          "Solver C: Affine Dot-Product Accumulator: 472 -> 328 steps (2 accepted, 2 rejected)"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "name": "Searcher self-rewrite replay (exam cost 29917 -> 29879, proposals bit-identical)",
+      "passed": true,
+      "details": {
+        "selfRewriteOccurred": true,
+        "oldSearcherHash": "382166022",
+        "newSearcherHash": "708145596",
+        "oldExamCost": "29917",
+        "newExamCost": "29879",
+        "examCostDrop": "38",
+        "switchCost": "5",
+        "proofStepsCount": 5,
+        "proposalsIdenticalOnExam": true
+      }
+    },
+    {
+      "id": 7,
+      "name": "Determinism and mid-run state export/import (bit-identical JSON states)",
+      "passed": true,
+      "details": {
+        "twoRunsIdentical": true,
+        "resumedIdentical": true,
+        "finalEpoch": 4,
+        "finalSolverHash": "341887526",
+        "finalSearcherHash": "708145596"
+      }
+    },
+    {
+      "id": 8,
+      "name": "Static scan (Strict CSP, 0 network/storage APIs, all inline blocks labeled with provenance)",
+      "passed": true,
+      "details": {
+        "hasStrictCsp": true,
+        "cspContent": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;",
+        "externalAttrsCount": 0,
+        "forbiddenApisFound": [],
+        "styleBlocksCount": 1,
+        "allStylesLabeled": true,
+        "scriptBlocksCount": 1,
+        "allScriptsLabeled": true
+      }
+    },
+    {
+      "id": 9,
+      "name": "Real headless browser (Chromium loaded gm1.html, ran 4 epochs, 0 page/console errors)",
+      "passed": true,
+      "details": {
+        "ok": true,
+        "epoch": "4",
+        "solverCost": "426 steps",
+        "searcherCost": "29879 steps",
+        "verdicts": "2 / 2",
+        "exportedStateChars": 128624,
+        "pageErrors": [],
+        "severeConsoleLogs": []
+      }
+    }
+  ],
+  "metrics": {
+    "test1": {
+      "totalForgeries": 240,
+      "rejectedCount": 240,
+      "rightReasonCount": 240,
+      "byCategory": {
+        "wrong_rule": {
+          "total": 30,
+          "rejected": 30,
+          "matchedReason": 30
+        },
+        "wrong_location": {
+          "total": 35,
+          "rejected": 35,
+          "matchedReason": 35
+        },
+        "side_condition_violated": {
+          "total": 40,
+          "rejected": 40,
+          "matchedReason": 40
+        },
+        "false_cost_claim": {
+          "total": 30,
+          "rejected": 30,
+          "matchedReason": 30
+        },
+        "replacement_mismatch": {
+          "total": 30,
+          "rejected": 30,
+          "matchedReason": 30
+        },
+        "stale_target_hash": {
+          "total": 25,
+          "rejected": 25,
+          "matchedReason": 25
+        },
+        "truncated_proof": {
+          "total": 25,
+          "rejected": 25,
+          "matchedReason": 25
+        },
+        "wrong_component": {
+          "total": 25,
+          "rejected": 25,
+          "matchedReason": 25
+        }
+      }
+    },
+    "test2": {
+      "perRuleResults": [
+        {
+          "ruleId": 1,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "180000",
+          "totalNewSteps": "170000",
+          "perInputDelta": -1,
+          "ruleName": "R_ADD_ZERO_R",
+          "expectedDelta": -1
+        },
+        {
+          "ruleId": 2,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "120000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -1,
+          "ruleName": "R_ADD_ZERO_L",
+          "expectedDelta": -1
+        },
+        {
+          "ruleId": 3,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "120000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -1,
+          "ruleName": "R_SUB_ZERO",
+          "expectedDelta": -1
+        },
+        {
+          "ruleId": 4,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "130000",
+          "totalNewSteps": "120000",
+          "perInputDelta": -1,
+          "ruleName": "R_SUB_SELF",
+          "expectedDelta": -1
+        },
+        {
+          "ruleId": 5,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "160000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -5,
+          "ruleName": "R_MUL_ONE_R",
+          "expectedDelta": -5
+        },
+        {
+          "ruleId": 6,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "160000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -5,
+          "ruleName": "R_MUL_ONE_L",
+          "expectedDelta": -5
+        },
+        {
+          "ruleId": 7,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "160000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -5,
+          "ruleName": "R_MUL_ZERO_R",
+          "expectedDelta": -5
+        },
+        {
+          "ruleId": 8,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "160000",
+          "totalNewSteps": "120000",
+          "perInputDelta": -4,
+          "ruleName": "R_MUL_TWO_R",
+          "expectedDelta": -4
+        },
+        {
+          "ruleId": 9,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "180000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -7,
+          "ruleName": "R_DIV_ONE",
+          "expectedDelta": -7
+        },
+        {
+          "ruleId": 10,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "120000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -1,
+          "ruleName": "R_CONST_FOLD_ADD",
+          "expectedDelta": -1
+        },
+        {
+          "ruleId": 11,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "160000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -5,
+          "ruleName": "R_CONST_FOLD_MUL",
+          "expectedDelta": -5
+        },
+        {
+          "ruleId": 12,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "110000",
+          "totalNewSteps": "100000",
+          "perInputDelta": -1,
+          "ruleName": "R_CONST_FOLD_NEG",
+          "expectedDelta": -1
+        },
+        {
+          "ruleId": 13,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "170000",
+          "totalNewSteps": "140000",
+          "perInputDelta": -3,
+          "ruleName": "R_REDUNDANT_LOAD",
+          "expectedDelta": -3
+        },
+        {
+          "ruleId": 14,
+          "testedInputs": 10000,
+          "outputMismatches": 0,
+          "costViolations": 0,
+          "totalOldSteps": "140000",
+          "totalNewSteps": "110000",
+          "perInputDelta": -3,
+          "ruleName": "R_DEAD_LOAD",
+          "expectedDelta": -3
+        }
+      ]
+    },
+    "test3": {
+      "acceptedWhenUnsoundTrue": true,
+      "behaviorBroken": true,
+      "diffTestMismatchesOnRule99": 1000,
+      "caughtByTest2": true,
+      "rejectedWhenUnsoundFalse": true,
+      "rejectionCodeWhenOff": "wrong_rule"
+    },
+    "test4": {
+      "baseStepCount": 6,
+      "perturbedStepCount": 3,
+      "proposalsChanged": true,
+      "silentSearcherAcceptedCount": 0
+    },
+    "test5": {
+      "solverRuns": [
+        {
+          "name": "Seed Solver (Polynomial & Affine Checksum)",
+          "initialSolverCost": "732",
+          "finalSolverCost": "426",
+          "initialSearcherCost": "29917",
+          "finalSearcherCost": "29879",
+          "acceptedCount": 2,
+          "rejectedCount": 2,
+          "epochs": [
+            {
+              "epoch": 1,
+              "targetComponent": 0,
+              "accepted": true,
+              "code": "accepted",
+              "solverCost": "426",
+              "searcherCost": "29917"
+            },
+            {
+              "epoch": 2,
+              "targetComponent": 1,
+              "accepted": true,
+              "code": "accepted",
+              "solverCost": "426",
+              "searcherCost": "29879"
+            },
+            {
+              "epoch": 3,
+              "targetComponent": 0,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "426",
+              "searcherCost": "29879"
+            },
+            {
+              "epoch": 4,
+              "targetComponent": 1,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "426",
+              "searcherCost": "29879"
+            }
+          ]
+        },
+        {
+          "name": "Solver A: Plain Bubble Sort (3-element window pass)",
+          "initialSolverCost": "358",
+          "finalSolverCost": "358",
+          "initialSearcherCost": "29917",
+          "finalSearcherCost": "29879",
+          "acceptedCount": 1,
+          "rejectedCount": 3,
+          "epochs": [
+            {
+              "epoch": 1,
+              "targetComponent": 0,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "358",
+              "searcherCost": "29917"
+            },
+            {
+              "epoch": 2,
+              "targetComponent": 1,
+              "accepted": true,
+              "code": "accepted",
+              "solverCost": "358",
+              "searcherCost": "29879"
+            },
+            {
+              "epoch": 3,
+              "targetComponent": 0,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "358",
+              "searcherCost": "29879"
+            },
+            {
+              "epoch": 4,
+              "targetComponent": 1,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "358",
+              "searcherCost": "29879"
+            }
+          ]
+        },
+        {
+          "name": "Solver B: Plain Fibonacci Sequence Generator",
+          "initialSolverCost": "790",
+          "finalSolverCost": "790",
+          "initialSearcherCost": "29917",
+          "finalSearcherCost": "29879",
+          "acceptedCount": 1,
+          "rejectedCount": 3,
+          "epochs": [
+            {
+              "epoch": 1,
+              "targetComponent": 0,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "790",
+              "searcherCost": "29917"
+            },
+            {
+              "epoch": 2,
+              "targetComponent": 1,
+              "accepted": true,
+              "code": "accepted",
+              "solverCost": "790",
+              "searcherCost": "29879"
+            },
+            {
+              "epoch": 3,
+              "targetComponent": 0,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "790",
+              "searcherCost": "29879"
+            },
+            {
+              "epoch": 4,
+              "targetComponent": 1,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "790",
+              "searcherCost": "29879"
+            }
+          ]
+        },
+        {
+          "name": "Solver C: Affine Dot-Product Accumulator",
+          "initialSolverCost": "472",
+          "finalSolverCost": "328",
+          "initialSearcherCost": "29917",
+          "finalSearcherCost": "29879",
+          "acceptedCount": 2,
+          "rejectedCount": 2,
+          "epochs": [
+            {
+              "epoch": 1,
+              "targetComponent": 0,
+              "accepted": true,
+              "code": "accepted",
+              "solverCost": "328",
+              "searcherCost": "29917"
+            },
+            {
+              "epoch": 2,
+              "targetComponent": 1,
+              "accepted": true,
+              "code": "accepted",
+              "solverCost": "328",
+              "searcherCost": "29879"
+            },
+            {
+              "epoch": 3,
+              "targetComponent": 0,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "328",
+              "searcherCost": "29879"
+            },
+            {
+              "epoch": 4,
+              "targetComponent": 1,
+              "accepted": false,
+              "code": "empty_proposal",
+              "solverCost": "328",
+              "searcherCost": "29879"
+            }
+          ]
+        }
+      ]
+    },
+    "test6": {
+      "selfRewriteOccurred": true,
+      "oldSearcherHash": "382166022",
+      "newSearcherHash": "708145596",
+      "oldExamCost": "29917",
+      "newExamCost": "29879",
+      "examCostDrop": "38",
+      "switchCost": "5",
+      "proofStepsCount": 5,
+      "proposalsIdenticalOnExam": true
+    },
+    "test7": {
+      "twoRunsIdentical": true,
+      "resumedIdentical": true,
+      "finalEpoch": 4,
+      "finalSolverHash": "341887526",
+      "finalSearcherHash": "708145596"
+    },
+    "test8": {
+      "hasStrictCsp": true,
+      "cspContent": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;",
+      "externalAttrsCount": 0,
+      "forbiddenApisFound": [],
+      "styleBlocksCount": 1,
+      "allStylesLabeled": true,
+      "scriptBlocksCount": 1,
+      "allScriptsLabeled": true
+    },
+    "test9": {
+      "ok": true,
+      "epoch": "4",
+      "solverCost": "426 steps",
+      "searcherCost": "29879 steps",
+      "verdicts": "2 / 2",
+      "exportedStateChars": 128624,
+      "pageErrors": [],
+      "severeConsoleLogs": []
+    }
+  }
+}
