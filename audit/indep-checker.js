@@ -161,11 +161,12 @@ function parse(words) {
   return { comp: words[1], hash: words[2], repl, steps };
 }
 
-// Proposed fix (audit finding 1), off by default: reject programs whose register fields are outside 0..15.
+// GM-1.1 (ISA.md §1.1): programs must be well-formed. On by default since 1.1; pass { gm10: true } for the GM-1.0 rules.
 const REG_FIELDS = { 2: 'a', 3: 'ab', 4: 'abc', 5: 'abc', 6: 'abc', 7: 'abc', 8: 'abc', 9: 'ab', 10: 'abc', 11: 'abc', 12: 'abc',
   14: 'a', 15: 'a', 18: 'ab', 19: 'bc', 20: 'a', 21: 'ab', 22: 'a' };
 function wellFormed(prog) {
-  return prog.every(ins => [...(REG_FIELDS[Number(ins[0])] || '')].every(f => { const v = B(ins['abc'.indexOf(f) + 1]); return v >= 0n && v < 16n; }));
+  if (!Array.isArray(prog) || prog.length === 0) return false;
+  return prog.every(ins => Array.isArray(ins) && ins.length === 4 && Number(ins[0]) >= 0 && Number(ins[0]) <= 22 && [...(REG_FIELDS[Number(ins[0])] || '')].every(f => { const v = B(ins['abc'.indexOf(f) + 1]); return v >= 0n && v < 16n; }));
 }
 // state: { solver, searcher, workload, exam:[{targetComponent, prog, budget}] }, expected: component the epoch asked for
 function check(words, state, expected, opts = {}) {
@@ -174,9 +175,13 @@ function check(words, state, expected, opts = {}) {
   if (Number(c.comp) !== expected) return { ok: false, code: 'wrong_component' };
   const active = expected === 0 ? state.solver : state.searcher;
   if (c.hash !== hash(active)) return { ok: false, code: 'stale_target_hash' };
-  if (opts.strictRegisters && !wellFormed(active)) return { ok: false, code: 'ill_formed_program' };
+  const strict = opts.strictRegisters !== undefined ? opts.strictRegisters : !opts.gm10;
+  if (strict && !wellFormed(active)) return { ok: false, code: 'ill_formed_program' };
+  const USES = { 1: 'w1', 2: 'w1', 3: 'w1', 4: '', 5: 'w1', 6: 'w1', 7: 'w1', 8: 'w1', 9: 'w1', 10: 'w1w2', 11: 'w1w2', 12: 'w1', 13: 'w1w2', 14: 'w1' };
+  if (!opts.gm10) for (const st of c.steps) { const u = USES[Number(st[0])]; if (u === undefined) continue; if ((!u.includes('w1') && B(st[2]) !== 0n) || (!u.includes('w2') && B(st[3]) !== 0n)) return { ok: false, code: 'noncanonical_certificate' }; }
   let p = active.map(i => i.map(B));
   for (const st of c.steps) { const r = applyStep(p, st, opts); if (r.err) return { ok: false, code: r.err }; p = r.prog; }
+  if (strict && !wellFormed(c.repl)) return { ok: false, code: 'ill_formed_program' };
   if (p.length !== c.repl.length || p.some((ins, i) => ins.some((w, k) => w !== c.repl[i][k]))) return { ok: false, code: 'replacement_mismatch' };
   const before = cost(active, expected, state), after = cost(p, expected, state);
   if (before === null || after === null || before - after <= SWITCH) return { ok: false, code: 'insufficient_cost_drop', before, after };

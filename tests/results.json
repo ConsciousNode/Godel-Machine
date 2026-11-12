@@ -1,6 +1,6 @@
 {
   "version": "GM-1.1",
-  "timestamp": "2026-11-12T07:53:59.497Z",
+  "timestamp": "2026-11-12T08:28:29.326Z",
   "tests": [
     {
       "id": 1,
@@ -196,24 +196,6 @@
         "allStylesLabeled": true,
         "scriptBlocksCount": 1,
         "allScriptsLabeled": true
-      }
-    },
-    {
-      "id": 9,
-      "name": "Real headless browser (selenium-chromium loaded gm1.html, ran 4 epochs, 0 page/console errors)",
-      "status": "PASS",
-      "passed": true,
-      "skipped": false,
-      "details": {
-        "ok": true,
-        "driver": "selenium-chromium",
-        "epoch": "4",
-        "solverCost": "426 steps",
-        "searcherCost": "29879 steps",
-        "verdicts": "2 / 2",
-        "exportedStateChars": 128653,
-        "pageErrors": [],
-        "severeConsoleLogs": []
       }
     },
     {
@@ -1197,17 +1179,6 @@
       "scriptBlocksCount": 1,
       "allScriptsLabeled": true
     },
-    "test9": {
-      "ok": true,
-      "driver": "selenium-chromium",
-      "epoch": "4",
-      "solverCost": "426 steps",
-      "searcherCost": "29879 steps",
-      "verdicts": "2 / 2",
-      "exportedStateChars": 128653,
-      "pageErrors": [],
-      "severeConsoleLogs": []
-    },
     "test10": {
       "all14RulesRejectedWithIllFormed": true,
       "perRule": [
@@ -1699,9 +1670,9 @@
     }
   },
   "summary": {
-    "passed": 13,
+    "passed": 12,
     "failed": 0,
     "skipped": 0,
-    "total": 13
+    "total": 12
   }
 }
